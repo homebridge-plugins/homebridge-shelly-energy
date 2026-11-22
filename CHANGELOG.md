@@ -24,3 +24,4 @@ All notable changes to `@homebridge-plugins/homebridge-shelly-energy` will be do
 - fix: only run the plugin's own action names
 - fix: keep a gen1 em or 3em clamp chosen on the settings page
 - fix: end a learned appliance's run that goes on far longer than its usual ones
+- fix: count past days by calendar day, so the spring clock change skips none

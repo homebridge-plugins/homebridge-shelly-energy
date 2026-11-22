@@ -71,6 +71,8 @@ const CHARS = [
 ]
 const Characteristic = Object.fromEntries(CHARS.map(n => [n, n]))
 Object.defineProperty(Characteristic, 'ValveType', {
+  // a string that also carries the value constant, as HAP's ValveType does
+  // eslint-disable-next-line no-new-wrappers, unicorn/new-for-builtins
   value: Object.assign(new String('ValveType'), { WATER_FAUCET: 3 }),
 })
 class Svc {

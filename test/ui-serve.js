@@ -1,19 +1,22 @@
-// node test/ui-serve.mjs <port> - the settings page in a browser without Homebridge: runs the real plugin (index.js) on
+// node test/ui-serve.js <port> - the settings page in a browser without Homebridge: runs the real plugin (index.js) on
 // stand-ins (Shelly EM, a Gen2 plug, a HomeKit-firmware relay, the Matter controller), the page's real server-side handlers,
 // and a stand-in for the Homebridge UI's `homebridge` object in the page. Used by test/ui-test.py.
+
+/* eslint-disable no-console, antfu/no-top-level-await -- a script run by hand for the browser test */
 import fs from 'node:fs'
 import http from 'node:http'
 import os from 'node:os'
 import path from 'node:path'
+import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 
 import { makeHandlers } from '../lib/homebridge-ui/handlers.js'
-import { fakeApi, fakeLog } from './fake-homebridge.mjs'
-import { startFakeEm, startFakeGen1, startFakeGen2, startFakeShelly } from './fake-shelly.mjs'
+import { fakeApi, fakeLog } from './fake-homebridge.js'
+import { startFakeEm, startFakeGen1, startFakeGen2, startFakeShelly } from './fake-shelly.js'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const port = +(process.argv[2] || 8599)
-process.env.HE_MATTER_WORKER = path.join(HERE, 'fake-matter-worker.mjs')
+process.env.HE_MATTER_WORKER = path.join(HERE, 'fake-matter-worker.js')
 const { default: plugin } = await import('../lib/index.js')
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'he-ui-'))
 const cfgPath = path.join(dir, 'config.json')
@@ -60,8 +63,8 @@ fs.copyFileSync(path.join(HERE, 'fixtures', 'backup.json'), path.join(files, 'sa
   }
   x.energy = {}
   for (let i = 1; i <= 30; i++) {
-    const h = new Array(24).fill(0.3)
-    const ah = new Array(24).fill(0)
+    const h = Array.from({ length: 24 }).fill(0.3)
+    const ah = Array.from({ length: 24 }).fill(0)
     ah[18] = 1.5
     h[18] += 1.5
     x.energy[key(Date.now() - i * 86400e3)] = {
@@ -72,7 +75,7 @@ fs.copyFileSync(path.join(HERE, 'fixtures', 'backup.json'), path.join(files, 'sa
       peakT: 0,
       h,
       ah: { testdryer01: ah },
-      oh: new Array(24).fill(0.3),
+      oh: Array.from({ length: 24 }).fill(0.3),
       base: 250,
     }
   }
@@ -123,7 +126,7 @@ setInterval(() => {
 const api = fakeApi({ storage: dir, configPath: cfgPath })
 const log = fakeLog()
 plugin(api)
-new api.Platform(log, config[0], api)
+void new api.Platform(log, config[0], api)
 api.emit('didFinishLaunching')
 const H = makeHandlers(dir)
 const page = fs.readFileSync(path.join(HERE, '..', 'lib', 'homebridge-ui', 'public', 'index.html'), 'utf8')

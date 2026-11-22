@@ -10,3 +10,4 @@ All notable changes to `@homebridge-plugins/homebridge-shelly-energy` will be do
 - refactor: move the code into lib, and use the org package name, workflows and issue forms
 - chore: name homebridge-plugins as the copyright holder in the licence
 - chore: apply the org lint rules
+- test: run the tests with vitest, and the plugin inside homebridge against a pretend meter

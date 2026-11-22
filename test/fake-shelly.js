@@ -87,8 +87,8 @@ export function startFakeGen2(
   { id = 'shellyplusplugs-test01', name = 'Washing machine', channels = 1, meterOnly = false, password = false } = {},
 ) {
   const st = {
-    on: new Array(channels).fill(false),
-    w: new Array(channels).fill(0),
+    on: Array.from({ length: channels }).fill(false),
+    w: Array.from({ length: channels }).fill(0),
     down: false,
     gets: 0,
   }

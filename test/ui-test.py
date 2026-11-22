@@ -1,4 +1,4 @@
-# python3 -I test/ui-test.py <port> [screenshot-dir] - drives the settings page (served by test/ui-serve.mjs) in headless
+# python3 -I test/ui-test.py <port> [screenshot-dir] - drives the settings page (served by test/ui-serve.js) in headless
 # Chrome, the way a person would. Fails on any JavaScript error or a step that doesn't work.
 import json, sys, time, os, tempfile
 from playwright.sync_api import sync_playwright
@@ -6,7 +6,7 @@ from playwright.sync_api import sync_playwright
 port = sys.argv[1] if len(sys.argv) > 1 else '8599'
 shots = sys.argv[2] if len(sys.argv) > 2 else None
 base = f'http://127.0.0.1:{port}'
-files = os.path.join(tempfile.gettempdir(), f'he-ui-files-{port}')  # written by ui-serve.mjs
+files = os.path.join(tempfile.gettempdir(), f'he-ui-files-{port}')  # written by ui-serve.js
 errors, checks = [], []
 def check(name, cond):
     checks.append(name)
@@ -210,7 +210,7 @@ with sync_playwright() as p:
     check('web page card shows its address', f':{int(port) + 5}/' in pg.inner_text('#webcard'))
     pg.fill('#webPin', '4826'); pg.click('#saveWebPin'); time.sleep(.8)
     check('PIN set', 'Change PIN' in pg.inner_text('#webcard'))
-    # (the page's security policy blocks the test tool's own page scripts; test/web-unit.mjs checks that policy itself)
+    # (the page's security policy blocks the test tool's own page scripts; test/web.test.js checks that policy itself)
     w = b.new_context(bypass_csp=True, accept_downloads=True, viewport={'width': 1100, 'height': 900}).new_page()
     w.on('pageerror', lambda e: errors.append('web: ' + str(e)))
     w.on('dialog', on_dialog)

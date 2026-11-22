@@ -3,8 +3,7 @@ import { antfu } from '@antfu/eslint-config'
 /** @type {typeof antfu} */
 export default antfu(
   {
-    // the script-style tests are moved to vitest next, and linted then
-    ignores: ['test/*.mjs'],
+    ignores: [],
     jsx: false,
     rules: {
       'curly': ['error', 'multi-line'],

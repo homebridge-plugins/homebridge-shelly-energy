@@ -6,8 +6,10 @@
 //   code starting 4 -> node 45: a plug with its relay on ep1 and its power meter on ep2 (how a real GRILLPLATS reports)
 //   anything else 11 digits -> a pairing that fails like a wrong code
 // Nodes "already paired" (as if from a copied controller folder) are read from <storage>/fake-nodes.json.
+
 import fs from 'node:fs'
 import path from 'node:path'
+import process from 'node:process'
 
 import { hubDevices } from '../lib/matter-hub.js'
 

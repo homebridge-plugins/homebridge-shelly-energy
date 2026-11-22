@@ -10,6 +10,7 @@ All notable changes to `@homebridge-plugins/homebridge-shelly-energy` will be do
 - fix(ui): escape a device's id in the room picker
 - fix: refuse hex and whole-number addresses that fetch reads as internet addresses
 - fix: don't fill a gap of more than 31 days, so a clock jump keeps the real days
+- fix: keep merged steps on the chosen appliance when another room has one of the same name
 
 ## v1.0.0 (2026-11-22)
 

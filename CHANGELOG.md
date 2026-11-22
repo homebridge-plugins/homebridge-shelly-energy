@@ -8,6 +8,7 @@ All notable changes to `@homebridge-plugins/homebridge-shelly-energy` will be do
 
 - feat: bring in the original author's 1.7.6 with gap filling, safer saves, rooms and recordings
 - fix(ui): escape a device's id in the room picker
+- fix: refuse hex and whole-number addresses that fetch reads as internet addresses
 
 ## v1.0.0 (2026-11-22)
 

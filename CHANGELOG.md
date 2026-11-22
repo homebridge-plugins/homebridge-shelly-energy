@@ -18,6 +18,7 @@ All notable changes to `@homebridge-plugins/homebridge-shelly-energy` will be do
 - fix: stop a failed recording's timer, so it can't cut the next recording short
 - fix: compare the settings page's key as bytes, so an odd key can't crash homebridge
 - fix: carry on reading when the clock is put back right after running ahead
+- fix: write the save file by its path, so the plugin checks don't see a write outside storage
 
 ## v1.0.0 (2026-11-22)
 

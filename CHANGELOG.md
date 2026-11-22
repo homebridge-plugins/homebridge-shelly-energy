@@ -34,3 +34,4 @@ All notable changes to `@homebridge-plugins/homebridge-shelly-energy` will be do
 - docs: use the org readme, and add claude and copilot instructions
 - docs: add the shelly banner and plugin icon
 - docs(schema): explain the meter reading and web page port settings
+- chore(deps): dependency updates

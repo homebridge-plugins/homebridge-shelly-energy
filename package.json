@@ -1,0 +1,21 @@
+{
+  "name": "homebridge-shelly-home-energy-monitoring",
+  "displayName": "Shelly Home Energy Monitoring",
+  "version": "1.1.1",
+  "description": "Learns your appliances from a Shelly EM whole-house meter, reads Shellys and Matter devices on your home network for exact figures, and shows each appliance in Apple Home as a Matter outlet with live watts and energy. Everything stays on your home network.",
+  "type": "module",
+  "main": "index.js",
+  "license": "MIT",
+  "keywords": ["homebridge-plugin", "homebridge", "shelly", "shelly-em", "matter", "energy", "power", "appliances", "nilm"],
+  "engines": { "homebridge": "^2.4.0", "node": "^22.18.0 || ^24.0.0 || ^26.0.0" },
+  "files": ["README.md", "config.schema.json", "index.js", "lib", "homebridge-ui"],
+  "scripts": {
+    "test": "node test/run-all.mjs"
+  },
+  "dependencies": {
+    "@homebridge/plugin-ui-utils": "^2.0.0",
+    "@matter/main": "^0.17.9",
+    "@matter/nodejs": "^0.17.9",
+    "@project-chip/matter.js": "^0.17.9"
+  }
+}

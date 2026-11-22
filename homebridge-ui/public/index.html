@@ -1,0 +1,678 @@
+<!-- Shelly Home Energy Monitoring (homebridge-shelly-home-energy-monitoring): this plugin's page in the Homebridge UI. Everything is set up here; it talks to the running plugin through
+     homebridge-ui/server.js. No outside resources: no fonts, no scripts, no images from the internet.
+     Four headings: Today (open), Appliances, Devices, Settings. The Homebridge UI shows this page in a sandboxed frame where
+     confirm()/prompt() are blocked, so every question is asked on the page (ask()). -->
+<style>
+  .he { --ok: #1f9d63; --bad: #c94450; --warn: #c9861f; --line: rgba(127,127,127,.25); --soft: rgba(127,127,127,.08); font-size: .95rem; }
+  .he details.sec { border: 1px solid var(--line); border-radius: 10px; margin-bottom: .8rem; }
+  .he details.sec > summary { cursor: pointer; padding: .7rem .9rem; font-weight: 600; font-size: 1.1em; display: flex; gap: .6rem; align-items: center; list-style: none; }
+  .he details.sec > summary::-webkit-details-marker { display: none; }
+  .he details.sec > summary::before { content: '▸'; opacity: .6; transition: transform .15s; }
+  .he details.sec[open] > summary::before { transform: rotate(90deg); }
+  .he summary .sub { font-weight: 400; font-size: .8em; margin-left: auto; text-align: right; color: var(--warn); }
+  .he .body { padding: .2rem .9rem 1rem; }
+  .he .card2 { border: 1px solid var(--line); border-radius: 8px; padding: .7rem .8rem; margin: .7rem 0; }
+  .he .card2 > h6 { margin: 0 0 .5rem; font-weight: 600; }
+  .he h6.sub2 { margin: 1rem 0 .4rem; font-weight: 600; }
+  .he .row2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: .6rem 1rem; }
+  .he label.l { font-size: .82em; opacity: .8; margin: 0 0 .15rem; display: block; }
+  .he .help { font-size: .8em; opacity: .65; margin-top: .2rem; }
+  .he .muted { opacity: .65; }
+  .he table { width: 100%; border-collapse: collapse; font-size: .9em; }
+  .he th { text-align: left; font-weight: 600; opacity: .7; font-size: .85em; border-bottom: 1px solid var(--line); padding: .35rem .4rem; }
+  .he td { border-bottom: 1px solid var(--line); padding: .4rem .4rem; vertical-align: top; }
+  .he tr.grp td { border-bottom: 1px solid var(--line); padding: .8rem .4rem .3rem; font-weight: 600; }
+  .he tr.grp td .muted { font-weight: 400; }
+  .he td.num, .he th.num { text-align: right; white-space: nowrap; }
+  .he .scroll { overflow-x: auto; }
+  .he .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--bad); margin-right: 6px; vertical-align: middle; }
+  .he .dot.ok { background: var(--ok); } .he .dot.wait { background: var(--warn); }
+  .he .pill { display: inline-block; font-size: .78em; padding: .05rem .45rem; border-radius: 99px; background: var(--soft); border: 1px solid var(--line); margin: 0 .2rem .1rem 0; white-space: nowrap; }
+  .he .pill.on { border-color: var(--ok); } .he .pill.warn { border-color: var(--warn); }
+  .he .btn-link { padding: 0 .25rem; vertical-align: baseline; }
+  .he .actions { white-space: nowrap; text-align: right; }
+  .he .err { color: var(--bad); font-size: .85em; }
+  .he .bar { height: 6px; border-radius: 3px; background: var(--ok); opacity: .7; min-width: 1px; }
+  .he .status { display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; padding: .7rem .9rem; border: 1px solid var(--line); border-radius: 10px; margin-bottom: .8rem; align-items: center; }
+  .he .big { font-size: 1.6em; font-weight: 600; }
+  .he .kpis { display: flex; flex-wrap: wrap; gap: .5rem 2rem; margin: .3rem 0 .8rem; }
+  .he .kpis .k { font-size: 1.35em; font-weight: 600; } .he .kpis .t { font-size: .8em; opacity: .65; }
+  .he .edit { background: var(--soft); border: 1px solid var(--line); border-radius: 8px; padding: .7rem; margin: .4rem 0; }
+  .he .chip { border: 1px solid var(--line); background: transparent; border-radius: 99px; padding: .05rem .55rem; font-size: .85em; color: inherit; }
+  .he .note { border-left: 3px solid var(--warn); padding: .4rem .7rem; margin: .5rem 0; background: var(--soft); border-radius: 4px; font-size: .9em; }
+  .he .gap { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+  .he input[type=checkbox] { width: 1.05rem; height: 1.05rem; vertical-align: middle; }
+  .he .seg button { margin-right: .3rem; }
+  .he .ask { border: 1px solid var(--warn); border-radius: 8px; padding: .7rem; margin: .5rem 0; background: var(--soft); }
+  .he .ask p { margin: 0 0 .5rem; }
+  .he .ico { display: inline-block; width: 1.7em; margin-right: .55em; text-align: center; font-size: 1.15em; line-height: 1; vertical-align: -.12em; }
+  .he .pill .ico, .he .chip .ico { width: auto; margin-right: .35em; font-size: 1em; }
+  .he .pill .ico:empty, .he .chip .ico:empty { display: none; }
+  .he .filters { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: .2rem 0 .5rem; }
+  .he .filters .form-control { width: auto; min-width: 9rem; flex: 0 1 auto; }
+  .he .filters input.form-control { flex: 1 1 12rem; max-width: 22rem; }
+  .he .filters .count { font-size: .85em; opacity: .65; margin-left: auto; }
+  .he .running { display: flex; flex-wrap: wrap; gap: .3rem; margin: .2rem 0 .6rem; }
+  .he .linky { cursor: pointer; text-decoration: underline; }
+  .he .tip { border: 1px solid var(--line); border-left: 3px solid var(--ok); border-radius: 6px; padding: .55rem .7rem; margin: .45rem 0; }
+  .he .tip.info { border-left-color: var(--line); }
+  .he .tip .tt { display: flex; gap: .5rem; align-items: baseline; font-weight: 600; }
+  .he .tip .tt button { margin-left: auto; }
+  .he .tip .tx { font-size: .9em; opacity: .85; margin-top: .15rem; }
+  .he .tip .sv { font-size: .9em; margin-top: .3rem; color: var(--ok); font-weight: 600; }
+</style>
+
+<div class="he" id="he">
+  <div class="status" id="status"><span class="muted">Connecting to the plugin…</span></div>
+  <div id="notRunning" class="note" style="display:none"></div>
+
+  <details class="sec" id="sec-today" open><summary>Today</summary><div class="body">
+    <div id="todo"></div>
+    <div id="today"></div>
+    <div id="tips"></div>
+    <div id="summary"></div>
+  </div></details>
+
+  <details class="sec" id="sec-appl"><summary>Appliances <span class="sub" id="sum-appl"></span></summary><div class="body">
+    <div id="pat"></div>
+    <div class="filters" id="applFilters">
+      <input class="form-control" id="aq" type="search" placeholder="Search appliances or rooms" autocomplete="off" spellcheck="false">
+      <select class="form-control" id="aroom"><option value="">All rooms</option></select>
+      <select class="form-control" id="ashow"><option value="">Show all</option><option value="running">Running now</option><option value="measured">Measured by a device</option><option value="steps">Learned from steps</option><option value="relink">Measured before (to link)</option><option value="problem">Device not answering</option><option value="tiles">With Apple Home tiles</option><option value="notiles">Without tiles</option></select>
+      <span class="count" id="acount"></span></div>
+    <div id="appl"></div>
+  </div></details>
+
+  <details class="sec" id="sec-set"><summary>Settings <span class="sub" id="sum-set"></span></summary><div class="body">
+    <div class="card2" id="card-meter"><h6>Whole-house meter</h6>
+      <div class="row2">
+        <div><label class="l" for="emHost">Shelly EM address</label><input class="form-control" id="emHost" placeholder="192.168.1.50" autocomplete="off">
+          <div class="help">Its IP address or .local name. Give it a fixed address in your router.</div></div>
+        <div><label class="l" for="emChannel">Which reading</label><select class="form-control" id="emChannel"></select>
+          <div class="help">The clamp on your main incoming supply.</div></div>
+        <div><label class="l" for="threshold">Smallest step to notice (W)</label><input class="form-control" id="threshold" type="number" min="10" max="2000" step="5">
+          <div class="help">Smaller finds more appliances, but also more noise. 40 W suits most homes.</div></div>
+      </div>
+      <div class="gap" style="margin-top:.7rem"><button class="btn btn-primary btn-sm" id="saveMeter">Save</button><span id="meterMsg" class="muted"></span></div>
+    </div>
+    <div class="card2" id="card-hw"><h6>Shellys and Matter devices</h6>
+      <p class="help" style="margin-top:0">The hardware this plugin reads. What each one measures shows with its appliance, or under Appliances → Found, not set up yet.</p>
+      <div id="matterSys"></div>
+      <div class="filters" id="devFilters">
+        <input class="form-control" id="dq" type="search" placeholder="Search devices or addresses" autocomplete="off" spellcheck="false">
+        <select class="form-control" id="dshow"><option value="">Show all</option><option value="problem">Not answering</option><option value="shelly">Shellys</option><option value="matter">Matter devices</option></select>
+        <span class="count" id="dcount"></span></div>
+      <div id="dev"></div>
+      <div style="margin-top:.8rem"><button class="btn btn-outline-primary btn-sm" id="findShellys">Find Shellys on this network</button>
+        <span class="help" style="margin-left:.4rem">Asks every address on the Homebridge computer's home network; takes about 10 seconds.</span>
+        <div id="found"></div></div>
+      <div class="row2" style="margin-top:.8rem">
+        <div><b style="font-size:.9em">+ Add a Shelly</b>
+          <div class="gap" style="margin-top:.3rem"><input class="form-control" id="shellyAdd" placeholder="192.168.1.51 or shelly1-kitchen.local" autocomplete="off" spellcheck="false" style="flex:1;min-width:12rem"><button class="btn btn-primary btn-sm" id="addShelly">Add</button></div>
+          <div class="help">Any Wi-Fi Shelly that measures power or switches: Gen1, Gen2, Gen3 and Gen4 (also ones paired to Apple Home over Matter), and ones with the HomeKit firmware: plugs, relays, dimmers, shutter controllers and EM meters, by their address on your home network. Shellys with a password set can't be read.</div></div>
+        <div><b style="font-size:.9em">+ Add a Matter device</b>
+          <div class="gap" style="margin-top:.3rem"><input class="form-control" id="mName" placeholder="Name, e.g. Grill plug" maxlength="40" style="flex:1;min-width:9rem"><input class="form-control" id="mCode" placeholder="Pairing code" autocomplete="off" style="flex:1;min-width:9rem"><button class="btn btn-primary btn-sm" id="addMatter">Add</button></div>
+          <div class="help">In the Home app: the device's (or its bridge's) settings → Turn On Pairing Mode, then copy the code here. It stays in Apple Home; this plugin joins as a second controller and only reads it.</div></div>
+      </div>
+    </div>
+    <div class="card2"><h6>Electricity plan</h6><div id="plan"></div></div>
+    <div class="card2"><h6>Apple Home</h6><div id="tiles"></div></div>
+    <div class="card2"><h6>Web page</h6><div id="webcard"></div></div>
+    <div class="card2"><h6>Data</h6><div id="data"></div></div>
+  </div></details>
+  <div class="help" id="foot"></div>
+</div>
+
+<script>
+(() => {
+  const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+  const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const W = w => w == null ? '–' : Math.abs(w) >= 1000 ? (w / 1000).toFixed(2) + ' kW' : Math.round(w) + ' W';
+  const kWh = k => k >= 100 ? Math.round(k) + ' kWh' : k >= 10 ? k.toFixed(1) + ' kWh' : k.toFixed(2) + ' kWh';
+  const ago = t => { if (!t) return '–'; const s = (Date.now() - t) / 1000; return s < 90 ? 'just now' : s < 5400 ? Math.round(s / 60) + ' min ago' : s < 129600 ? Math.round(s / 3600) + ' h ago' : Math.round(s / 86400) + ' days ago'; };
+  const cycleName = c => (c.sure ? c.name : `probably ${c.name}`);
+  const dur = s => s == null ? '' : s >= 3600 ? (s / 3600).toFixed(1) + ' h' : Math.max(1, Math.round(s / 60)) + ' min';
+  const plural = (n, w, ws) => `${n} ${n === 1 ? w : ws || w + 's'}`;
+  const SRC = { set: 'your figure', learned: 'learned', default: 'default' };
+  const TILE = { none: 'None', faucet: 'Faucet (shows Running)', switch: 'Switch', outlet: 'Outlet', light: 'Light', fan: 'Fan', purifier: 'Air purifier', humidifier: 'Humidifier',
+    dehumidifier: 'Dehumidifier', heater: 'Heater', cooler: 'Air conditioner', occupancy: 'Occupancy sensor', contact: 'Contact sensor', motion: 'Motion sensor' };
+  const HB = window.homebridge;
+  let FOUND = null, finding = false; // Find Shellys: the last result, kept while the page is open
+  let V = null, busy = false, editing = null, naming = null, sumDays = 1, planDraft = null, S1 = null, allTips = false;
+
+  // which headings are open is remembered on this browser (Today open the first time)
+  const OPEN_KEY = 'home-energy-open';
+  try { const o = JSON.parse(localStorage.getItem(OPEN_KEY) || 'null'); if (o) for (const d of $$('details.sec')) d.open = !!o[d.id]; } catch {}
+  $$('details.sec').forEach(d => d.addEventListener('toggle', () => {
+    try { localStorage.setItem(OPEN_KEY, JSON.stringify(Object.fromEntries($$('details.sec').map(x => [x.id, x.open])))); } catch {}
+    if (d.id === 'sec-today' && d.open) renderSummary();
+  }));
+  const openSec = id => { const d = $('#' + id); if (!d.open) d.open = true; d.scrollIntoView?.({ block: 'start', behavior: 'smooth' }); };
+
+  // ---------- talking to the plugin ----------
+  async function call(action, args = {}, quiet = false) {
+    const r = await HB.request('/call', { action, args });
+    if (r.notRunning) showNotRunning(r.error);
+    if (!r.ok) { if (!quiet) HB.toast.error(r.error, 'Shelly Home Energy'); throw Object.assign(new Error(r.error), { shown: true }); }
+    return r.result;
+  }
+  async function act(action, args, okMsg) {
+    try { const r = await call(action, args); if (okMsg) HB.toast.success(okMsg, 'Shelly Home Energy'); await refresh(true); return r; } catch (e) { if (!e.shown) HB.toast.error(e.message, 'Shelly Home Energy'); return undefined; }
+  }
+  function showNotRunning(msg) { const n = $('#notRunning'); n.style.display = ''; n.textContent = msg; }
+  async function refresh(force = false) {
+    if (busy && !force) return; busy = true;
+    try { V = await call('view', {}, true); $('#notRunning').style.display = 'none'; render(); }
+    catch (e) { if (!V) $('#status').innerHTML = '<span class="dot"></span>Not connected to the plugin.'; }
+    finally { busy = false; }
+  }
+  // only redraw a part when its content changed and nothing in it is being typed in
+  function put(el, html) {
+    if (typeof el === 'string') el = $(el); if (!el || el._html === html) return;
+    if (el.contains(document.activeElement) && /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+    el.innerHTML = html; el._html = html;
+  }
+  // an appliance's icon: none chosen = ⚡, "No icon" ('none') = nothing (the space is kept in lists so names line up)
+  const icon = name => name === 'none' ? '' : esc(V?.plugin.icons?.[name] || '⚡');
+  const ico = name => `<span class="ico">${icon(name)}</span>`;
+  const iconSelect = (id, cur) => `<select class="form-control" id="${id}"><option value=""${!cur ? ' selected' : ''}>⚡ Automatic</option><option value="none"${cur === 'none' ? ' selected' : ''}>No icon</option>${Object.entries(V.plugin.icons).map(([k, e]) => `<option value="${k}"${k === cur ? ' selected' : ''}>${e} ${k.replace(/_/g, ' ')}</option>`).join('')}</select>`;
+  // the room picker: No room, your rooms, and "+ New room…" which opens a box to type the new one's name
+  const roomPicker = (id, cur) => {
+    const rooms = [...new Set([...V.settings.rooms, ...(cur ? [cur] : [])])].sort((a, b) => a.localeCompare(b));
+    return `<div data-roompick="${id}"><select class="form-control" data-roomsel><option value=""${!cur ? ' selected' : ''}>No room</option>${rooms.map(r => `<option value="${esc(r)}"${r === cur ? ' selected' : ''}>${esc(r)}</option>`).join('')}<option value="__new">+ New room…</option></select>
+      <input class="form-control" data-roomnew maxlength="40" placeholder="New room's name, e.g. Laundry" style="display:none;margin-top:.35rem" autocomplete="off"></div>`;
+  };
+  // what a picker holds: the chosen room, or the new one typed (null if "New room" was chosen and left empty)
+  const roomOf = id => { const w = $(`[data-roompick="${id}"]`); if (!w) return undefined; const v = w.querySelector('[data-roomsel]').value;
+    return v === '__new' ? (w.querySelector('[data-roomnew]').value.trim() || null) : v; };
+  const money = v => (V?.settings.currency || '$') + (v >= 100 ? Math.round(v) : v.toFixed(2));
+
+  // ---------- questions on the page (the browser's own are blocked in the Homebridge UI) ----------
+  let asking = null;
+  function ask(anchor, text, { input = null, placeholder = '', ok = 'OK', danger = false } = {}) {
+    asking?.done(null);
+    return new Promise(resolve => {
+      const box = document.createElement('div'); box.className = 'ask';
+      box.innerHTML = `<p>${esc(text)}</p>${input !== null ? `<input class="form-control" data-askin value="${esc(input)}" placeholder="${esc(placeholder)}" autocomplete="off" style="margin-bottom:.5rem">` : ''}
+        <div class="gap"><button class="btn ${danger ? 'btn-danger' : 'btn-primary'} btn-sm" data-askok>${esc(ok)}</button><button class="btn btn-secondary btn-sm" data-askno>Cancel</button></div>`;
+      const row = anchor?.closest('tr');
+      let holder = box;
+      if (row) { holder = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 20; td.appendChild(box); holder.appendChild(td); row.after(holder); }
+      else (anchor?.closest('.gap, p, .row2, div') || $('#he')).after(holder);
+      const field = box.querySelector('[data-askin]');
+      const done = v => { if (asking?.box !== box) return; asking = null; holder.remove(); resolve(v); };
+      asking = { box, done };
+      box.querySelector('[data-askok]').onclick = () => done(field ? field.value.trim() : true);
+      box.querySelector('[data-askno]').onclick = () => done(null);
+      if (field) field.addEventListener('keydown', e => { if (e.key === 'Enter') done(field.value.trim()); if (e.key === 'Escape') done(null); });
+      (field || box.querySelector('[data-askok]')).focus();
+      holder.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+    });
+  }
+
+  // ---------- drawing ----------
+  function render() {
+    if (asking) return; // never redraw with a question open
+    const n = V.now;
+    put('#status', `<span><span class="big">${n ? W(n.p) : '–'}</span> <span class="muted">now</span></span>
+      <span><span class="dot ${V.em.ok ? 'ok' : V.em.msg === 'Connecting…' ? 'wait' : ''}"></span>Meter: ${esc(V.em.msg)}</span>
+      <span><span class="dot ${V.tiles.matterOn ? 'ok' : ''}"></span>Matter ${V.tiles.matterOn ? `on (${plural(V.tiles.outlets, 'outlet')})` : 'off for this bridge'}</span>
+      <span><span class="dot ${V.tiles.hapOn ? 'ok' : 'wait'}"></span>HomeKit ${V.tiles.hapOn ? 'on' : 'off (running tiles need it)'}</span>`);
+    renderToday(); if (!naming) renderPat(); if (!editing) renderAppl(); renderSettings(); renderFound();
+    put('#foot', `${esc(V.plugin.name)} ${esc(V.plugin.version)} · everything stays on your home network`);
+  }
+  const notAnswering = () => V.shelly.filter(s => s.ok === false).length + V.matter.filter(m => ['failed', 'offline'].includes(m.status)).length;
+  function renderToday() {
+    const todo = [];
+    if (!V.settings.em.host) todo.push(['sec-set', 'Add the Shelly EM\'s address', 'Settings → Whole-house meter']);
+    else if (!V.em.ok && V.em.msg !== 'Connecting…') todo.push(['sec-set', `The meter isn't answering: ${V.em.msg}`, 'Settings → Whole-house meter']);
+    if (!V.tiles.matterOn) todo.push(['', 'Turn on Matter for this plugin\'s child bridge (Plugins → ⋮ → Bridge Settings) and restart', '']);
+    if (V.patterns.length) todo.push(['sec-appl', `${plural(V.patterns.length, 'repeating step')} to name`, 'Appliances']);
+    const na = notAnswering(); if (na) todo.push(['sec-set', `${plural(na, 'device')} not answering`, 'Settings → Shellys and Matter devices']);
+    const nf = foundReadings().filter(d => !d.hidden).length; if (nf) todo.push(['sec-appl', `${plural(nf, 'device reading')} found, not set up yet`, 'Appliances']);
+    const relink = V.sigs.filter(s => s.relink).length; if (relink) todo.push(['sec-appl', `${plural(relink, 'appliance')} measured through another Homebridge plugin before: link each to its device, or keep it on steps`, 'Appliances → the ones marked "measured before" → Edit']);
+    put('#todo', todo.length ? `<div class="note"><b>To do</b><ul style="margin:.3rem 0 0 1.1rem;padding:0">${todo.map(([sec, t, where]) => `<li>${sec ? `<span class="linky" data-goto="${sec}">${esc(t)}</span>` : esc(t)}${where ? ` <span class="muted">(${esc(where)})</span>` : ''}</li>`).join('')}</ul></div>` : '');
+    const run = V.sigs.filter(s => s.running).sort((a, b) => b.nowW - a.nowW);
+    const t = S1, other = V.now?.other;
+    put('#today', `<div class="kpis">
+        <div><div class="k">${t ? kWh(t.total.kwh) : '–'}</div><div class="t">used today</div></div>
+        ${t?.plan ? `<div><div class="k">${money(t.total.cost + t.fixed)}</div><div class="t">so far, with the daily charge</div></div>` : ''}
+        <div><div class="k">${t?.base != null ? t.base + ' W' : '–'}</div><div class="t">always on</div></div>
+        <div><div class="k">${other != null ? W(other) : '–'}</div><div class="t">not explained now</div></div></div>
+      <div class="muted" style="font-size:.85em">${run.length ? 'Running now' : 'Nothing named is running right now.'}</div>
+      ${run.length ? `<div class="running">${run.map(s => `<span class="pill on">${ico(s.icon)}${esc(s.name)}${s.nowW ? ' · ' + W(s.nowW) : ''}${s.cycle ? ` · ${esc(cycleName(s.cycle))}` : ''}${s.remaining != null ? ` · ${dur(s.remaining)} left` : ''}</span>`).join('')}</div>` : ''}`);
+    renderTips();
+  }
+  // Ways to save: from this home's own readings only; savings shown per week, month and year
+  function renderTips() {
+    const I = V.insights, shown = I.tips.filter(t => !t.hidden), hidden = I.tips.length - shown.length;
+    if (!I.tips.length) return put('#tips', I.needDays ? `<h6 class="sub2">Ways to save</h6><p class="muted" style="font-size:.9em">Tips appear once there are ${I.needDays} full days of readings (${I.days} so far). They're worked out from your own appliances, never generic.</p>` : '');
+    const per = t => t.costYear != null ? `≈ ${money(t.costYear / 52)} a week · ${money(t.costYear / 12)} a month · ${money(t.costYear)} a year`
+      : t.kwhYear != null ? `≈ ${(t.kwhYear / 52).toFixed(1)} kWh a week · ${Math.round(t.kwhYear / 12)} kWh a month · ${Math.round(t.kwhYear)} kWh a year` : '';
+    const list = allTips ? shown : shown.slice(0, 3);
+    const total = shown.filter(t => !t.info).reduce((a, t) => a + (t.costYear ?? 0), 0);
+    put('#tips', `<h6 class="sub2">Ways to save${I.plan && total >= 1 ? ` <span class="muted" style="font-weight:400">· up to ${money(total / 12)} a month in all</span>` : ''}</h6>
+      ${list.map(t => `<div class="tip${t.info ? ' info' : ''}"><div class="tt">${esc(t.title)}<button class="btn btn-link btn-sm" data-tipno="${esc(t.key)}" title="Hide this tip">✕</button></div>
+        <div class="tx">${esc(t.text)}</div>${per(t) ? `<div class="sv">${per(t)}</div>` : ''}</div>`).join('') || '<p class="muted" style="font-size:.9em">Nothing to suggest right now.</p>'}
+      <div class="gap" style="font-size:.9em">${shown.length > 3 ? `<button class="btn btn-link btn-sm" data-tipsmore>${allTips ? 'Show fewer' : `Show all ${shown.length}`}</button>` : ''}
+        ${hidden ? `<button class="btn btn-link btn-sm" data-tipsall>${hidden} hidden · show again</button>` : ''}
+        <span class="help" style="margin:0">Based on the last ${I.days} days.${I.plan ? '' : ' Add your electricity plan (Settings) to see savings in money.'}</span></div>`);
+  }
+  async function renderSummary() {
+    if (!$('#sec-today').open) return;
+    let s; try { s = await call('summary', { days: sumDays }, true); } catch { return; }
+    if (sumDays === 1) { S1 = s; if (V) renderToday(); }
+    const max = Math.max(0.0001, ...s.rows.map(r => r.kwh), s.other.kwh), c = s.plan;
+    const row = (name, ic, k, cost) => `<tr><td>${ic}${esc(name)}</td><td style="width:30%"><div class="bar" style="width:${Math.round(k / max * 100)}%"></div></td><td class="num">${kWh(k)}</td>${c ? `<td class="num">${money(cost)}</td>` : ''}<td class="num muted">${s.total.kwh ? Math.round(k / s.total.kwh * 100) + '%' : ''}</td></tr>`;
+    put('#summary', `<h6 class="sub2">Where it went</h6><div class="seg" style="margin-bottom:.6rem">${[[1, 'Today'], [7, '7 days'], [30, '30 days'], [365, 'Year']].map(([d, l]) => `<button class="btn btn-sm ${d === sumDays ? 'btn-primary' : 'btn-outline-secondary'}" data-days="${d}">${l}</button>`).join('')}</div>
+      <div class="scroll"><table><thead><tr><th>Appliance</th><th></th><th class="num">Energy</th>${c ? '<th class="num">Cost</th>' : ''}<th class="num">Share</th></tr></thead><tbody>
+      ${s.rows.map(r => row(r.name, ico(r.icon), r.kwh, r.cost)).join('')}${row(V?.settings.other?.name || 'Other', '<span class="ico">❔</span>', s.other.kwh, s.other.cost)}
+      <tr><td><b>Whole house</b></td><td></td><td class="num"><b>${kWh(s.total.kwh)}</b></td>${c ? `<td class="num"><b>${money(s.total.cost)}</b></td>` : ''}<td></td></tr>
+      ${c && s.fixed ? `<tr><td class="muted">Daily charges</td><td></td><td></td><td class="num muted">${money(s.fixed)}</td><td></td></tr>` : ''}</tbody></table></div>
+      ${!c ? '<div class="help">Add your electricity plan (Settings) to see costs.</div>' : ''}
+      ${s.daysWithData < sumDays && sumDays > 1 ? `<div class="help">Readings for ${s.daysWithData} of these ${sumDays} days.</div>` : ''}
+      ${s.base != null ? `<p class="help" style="margin-top:.6rem">About ${s.base} W is always on (the lowest the house goes in a day): roughly ${s.baseYearKwh} kWh a year.</p>` : ''}
+      ${s.standby.length ? `<p>Using power while idle: ${s.standby.map(x => `${esc(x.name)} <b>${W(x.w)}</b>`).join(', ')}.</p>` : ''}
+      ${s.anomalies.length ? `<h6 class="sub2">Unusual runs <button class="btn btn-link btn-sm" data-anclear>Clear all</button></h6><div class="help" style="margin-bottom:.3rem">A run much longer or shorter than that appliance's own usual one. Worth a look, nothing to fix: clear it once you've seen it.</div>
+        <ul style="padding-left:1.1rem">${s.anomalies.map(a => `<li>${esc(a.name)} ran ${dur(a.dur)} (usually ${dur(a.base)}) · ${ago(a.t)} <button class="btn btn-link btn-sm" data-andel="${esc(a.id)}" title="Clear this one">✕</button></li>`).join('')}</ul>` : ''}`);
+  }
+
+  // ----- Appliances: steps to name first (only when there are some), then the list by room -----
+  // ----- Appliances: "Found, not set up yet" (repeating steps to name, and device readings not tracked yet) -----
+  let allFound = false, showHidden = false;
+  const foundReadings = () => V.devices.filter(d => !d.sensor && !d.tracked && (typeof d.watts === 'number' || typeof d.on === 'boolean'));
+  const learnedText = d => { const e = d.est; if (typeof d.watts === 'number') return '<span class="muted">measures itself</span>';
+    if (!e) return '<span class="muted">switch it on and off a few times to learn its watts</span>';
+    if (e.w == null) return `<span class="muted">${e.small ? 'too small to see' : 'learning'} (${plural(e.n, 'switch', 'switches')}${e.skip ? `, ${e.skip} skipped` : ''})</span>`;
+    return `about <b>${W(e.w)}</b> <span class="muted">from ${plural(e.used, 'switch', 'switches')}${e.spread > 0.15 ? ', varies' : ''}</span> <button class="btn btn-link btn-sm" data-estreset="${esc(d.id)}" title="Forget these readings">reset</button>`; };
+  const where = d => d.protocol === 'matter' ? (V.matter.find(m => m.id === d.source)?.name || 'Matter') : (V.shelly.find(x => x.host === d.host)?.name || d.model || 'Shelly');
+  function renderPat() {
+    const P = V.patterns, R = foundReadings(), shownR = R.filter(d => showHidden || !d.hidden), hidden = R.length - R.filter(d => !d.hidden).length;
+    const n = P.length + R.filter(d => !d.hidden).length;
+    put('#sum-appl', n ? `${n} to set up` : '');
+    if (!P.length && !shownR.length && !hidden) return put('#pat', '');
+    const steps = P.map(p => `<tr><td class="num">${W(p.mean)}</td><td class="num">${p.n}×</td><td class="muted">${ago(p.last)}</td>
+      <td>${p.suggestion ? `<span title="${esc(p.suggestion.why)}"><button class="chip" data-yes="${p.key}">${ico(p.suggestion.icon)}${esc(p.suggestion.name)}${p.suggestion.stage ? ' (stage)' : ''}? <b>Yes</b></button> <button class="btn btn-link btn-sm" data-no="${p.key}" title="Not this">✕</button></span>` : '<span class="muted">–</span>'}</td>
+      <td class="actions"><button class="btn btn-link btn-sm" data-name="${p.key}">Name it</button></td></tr>
+      ${naming === p.key ? `<tr><td colspan="5"><div class="edit"><div class="row2"><div><label class="l">Name</label><input class="form-control" id="nmName" list="sigNames" maxlength="60" placeholder="Kettle"></div><div><label class="l">Icon</label>${iconSelect('nmIcon', p.suggestion?.icon || '')}</div><div><label class="l">Room</label>${roomPicker('nm', '')}</div></div>
+        <div class="help">Using a name you already have adds these steps to that appliance.</div>
+        <div class="gap" style="margin-top:.6rem"><button class="btn btn-primary btn-sm" data-doname="${p.key}">Name</button><button class="btn btn-secondary btn-sm" data-cancel>Cancel</button></div></div></td></tr>` : ''}`).join('');
+    const list = allFound ? shownR : shownR.slice(0, 8);
+    const reads = list.map(d => `<tr class="${d.hidden ? 'muted' : ''}"><td>${esc(d.name)}<div class="muted" style="font-size:.85em">${esc(where(d))}${d.protocol === 'matter' ? ' · Matter' : ' · Shelly'}</div></td>
+      <td class="num">${!d.reachable ? '<span class="err">not answering</span>' : typeof d.watts === 'number' ? W(d.watts) : d.on === true ? '<span class="pill on">on</span>' : d.on === false ? 'off' : '–'}</td>
+      <td>${learnedText(d)}</td>
+      <td class="actions"><button class="btn btn-link btn-sm" data-track="${esc(d.id)}">Track</button>${d.hidden ? `<button class="btn btn-link btn-sm" data-unhide="${esc(d.id)}">Show</button>` : `<button class="btn btn-link btn-sm" data-hide="${esc(d.id)}" title="Not an appliance: hide it from this list">Hide</button>`}</td></tr>`).join('');
+    put('#pat', `<div class="note" style="margin-top:.2rem"><b>Found, not set up yet</b> <span class="muted">· nothing here is counted as an appliance until you say so.</span>
+      ${P.length ? `<div style="margin-top:.5rem"><b style="font-size:.9em">${plural(P.length, 'repeating power step')}</b> <span class="muted" style="font-size:.9em">the meter keeps seeing. A suggestion is only a guess.</span></div>
+        <div class="scroll"><table><thead><tr><th class="num">Size</th><th class="num">Seen</th><th>Last</th><th>Might be</th><th></th></tr></thead><tbody>${steps}</tbody></table></div>` : ''}
+      ${shownR.length ? `<div style="margin-top:.7rem"><b style="font-size:.9em">${plural(R.length - hidden, 'device reading')}</b> <span class="muted" style="font-size:.9em">from your Shellys and Matter devices. Track one for exact figures; one that only switches gets its watts learned from the meter.</span></div>
+        <div class="scroll"><table><thead><tr><th>Reading</th><th class="num">Now</th><th>Watts</th><th></th></tr></thead><tbody>${reads}</tbody></table></div>` : ''}
+      <div class="gap" style="font-size:.9em">${shownR.length > 8 ? `<button class="btn btn-link btn-sm" data-allfound>${allFound ? 'Show fewer' : `Show all ${shownR.length}`}</button>` : ''}
+        ${hidden ? `<button class="btn btn-link btn-sm" data-showhidden>${showHidden ? 'Hide the hidden ones again' : `${hidden} hidden · show`}</button>` : ''}</div></div>
+      <datalist id="sigNames">${V.sigs.filter(s => !s.metered).map(s => `<option value="${esc(s.name)}">`).join('')}</datalist>`);
+  }
+  // ----- filters for the two long lists (remembered on this browser) -----
+  const FKEY = 'home-energy-filters';
+  const F = (() => { try { return JSON.parse(localStorage.getItem(FKEY) || '{}') || {}; } catch { return {}; } })();
+  const saveF = () => { try { localStorage.setItem(FKEY, JSON.stringify(F)); } catch {} };
+  for (const id of ['aq', 'aroom', 'ashow', 'dq', 'dshow']) { const el = $('#' + id); if (F[id] != null && el.tagName !== 'SELECT') el.value = F[id]; }
+  const words = q => String(q || '').toLowerCase().split(/\s+/).filter(Boolean);
+  const hasAll = (text, q) => words(q).every(w => text.toLowerCase().includes(w));
+  const applMatch = s => {
+    if (F.aroom === '__none' ? s.room : F.aroom && s.room !== F.aroom) return false;
+    const show = F.ashow || '';
+    if (show === 'running' && !s.running) return false;
+    if (show === 'measured' && !s.metered) return false;
+    if (show === 'steps' && s.metered) return false;
+    if (show === 'relink' && !s.relink) return false;
+    if (show === 'problem' && s.devOk !== false) return false;
+    if (show === 'tiles' && !(s.exposed || s.statusType !== 'none')) return false;
+    if (show === 'notiles' && (s.exposed || s.statusType !== 'none')) return false;
+    return hasAll(`${s.name} ${s.room} ${s.devName || ''}`, F.aq);
+  };
+  function renderApplFilters() {
+    const rooms = [...new Set(V.sigs.map(s => s.room).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    put('#aroom', `<option value="">All rooms</option>${rooms.map(r => `<option value="${esc(r)}">${esc(r)}</option>`).join('')}${V.sigs.some(s => !s.room) ? '<option value="__none">No room</option>' : ''}`);
+    if (F.aroom && ![...$('#aroom').options].some(o => o.value === F.aroom)) F.aroom = '';
+    $('#aroom').value = F.aroom || ''; $('#ashow').value = F.ashow || '';
+  }
+  function renderAppl() {
+    renderApplFilters();
+    const all = V.sigs, L = all.filter(s => applMatch(s) || s.id === editing);
+    const filtered = L.length !== all.length;
+    put('#acount', all.length ? (filtered ? `${L.length} of ${all.length}` : plural(all.length, 'appliance')) : '');
+    $('#applFilters').style.display = all.length > 5 || F.aq || F.aroom || F.ashow ? '' : 'none'; // never a hidden filter still applying
+    if (all.length && !L.length) return put('#appl', `<p class="muted">No appliance matches. <span class="linky" data-clearf="a">Show all</span></p>`);
+    if (!L.length) return put('#appl', `<p class="muted">None yet. Name a repeating step or track a device reading when they show up in "Found" above, add your Shellys and Matter devices under <span class="linky" data-goto="sec-set">Settings</span>, or import a backup under Settings → Data.</p>`);
+    const rooms = new Map();
+    for (const s of L) { const r = s.room || ''; if (!rooms.has(r)) rooms.set(r, []); rooms.get(r).push(s); }
+    const order = [...rooms.keys()].sort((a, b) => (!a) - (!b) || a.localeCompare(b));
+    const body = order.map(r => {
+      const list = rooms.get(r).sort((a, b) => (b.running - a.running) || b.today - a.today || a.name.localeCompare(b.name)), on = list.filter(s => s.running).length;
+      return `<tr class="grp"><td colspan="4">${esc(r || 'No room')} <span class="muted">· ${list.length}${on ? `, ${on} running` : ''}</span></td></tr>` + list.map(s => `<tr>
+        <td>${ico(s.icon)}${esc(s.name)}${s.relink ? ' <span class="pill" title="This was measured through another Homebridge plugin before. Open Edit to link it to its device, or keep it on steps.">measured before</span>' : ''}${s.devId ? `<div class="muted" style="font-size:.82em;margin-left:2.3em">via ${esc(s.devName || 'its device')}${s.estimated ? ', switched' : ''}${s.devOk === false ? ' · <span class="err">not answering</span>' : ''}</div>` : ''}</td>
+        <td class="num">${s.running ? `<span class="pill on">${s.nowW ? W(s.nowW) : 'running'}</span>${s.cycle || s.remaining != null ? `<div class="muted">${s.cycle ? esc(cycleName(s.cycle)) : ''}${s.cycle && s.remaining != null ? ' · ' : ''}${s.remaining != null ? `${dur(s.remaining)} left` : ''}</div>` : ''}` : `<span class="muted">${s.lastSeen ? ago(s.lastSeen) : '–'}</span>`}</td>
+        <td class="num">${kWh(s.today)}</td>
+        <td class="actions"><button class="btn btn-link btn-sm" data-edit="${s.id}">Edit</button></td></tr>
+        ${editing === s.id ? `<tr><td colspan="4">${editForm(s)}</td></tr>` : ''}`).join('');
+    }).join('');
+    put('#appl', `<div class="scroll"><table><thead><tr><th>Appliance</th><th class="num">Now</th><th class="num">Today</th><th></th></tr></thead><tbody>${body}</tbody></table></div>`);
+  }
+  function editForm(s) {
+    const steady = s.steadyOutlet === true ? 'always' : s.steadyOutlet === 'idle' ? 'idle' : 'off';
+    const how = s.estimated ? `Switched by ${esc(s.devName || 'its device')}, using ${s.estW ? `the ${W(s.estW)} you typed` : `about ${W(s.estNow)} learned from the meter`}.`
+      : s.metered ? `Measured by ${esc(s.devName || 'its device (not answering)')}.` : `Recognised from whole-house steps of about ${W(s.watts)}${s.stages ? ` (+ ${plural(s.stages, 'extra stage')})` : ''}.`;
+    const free = V.devices.filter(d => !d.sensor && !d.tracked && (typeof d.watts === 'number' || typeof d.on === 'boolean')).sort((a, b) => a.name.localeCompare(b.name));
+    const link = s.devId ? '' : `<div class="row2" style="margin-bottom:.6rem"><div><label class="l">Measure it with a device</label><div class="gap">
+        <select class="form-control" data-link="${s.id}" style="flex:1;min-width:12rem"><option value="">Choose a device…</option>${free.map(d => `<option value="${esc(d.id)}">${esc(d.name)}${typeof d.watts === 'number' ? ` (measures its watts, now ${W(d.watts)})` : d.est?.w ? ` (switches, about ${W(d.est.w)} learned)` : ' (switches, no watts learned yet)'}</option>`).join('')}</select>
+        <button class="btn btn-outline-primary btn-sm" data-dolink="${s.id}">Link</button></div>
+        <div class="help">${free.length ? 'Its history stays; from now on its figures come from the device.' : 'No free devices: add its Shelly or Matter device under Settings → Shellys and Matter devices first.'}</div></div></div>`;
+    const relink = s.relink ? `<div class="note" style="margin-top:0">This was measured through another Homebridge plugin, which this plugin doesn't read. If it's a Shelly or a Matter device, add it under Settings → Shellys and Matter devices and link it here. Otherwise it's recognised from whole-house steps. <button class="btn btn-link btn-sm" data-keep="${s.id}">Keep it on steps</button></div>` : '';
+    const learned = s.metered && !s.estimated ? ` ${s.learnCycles ? `Learned from ${plural(s.learnCycles, 'run')}` : 'Nothing learned yet: it learns from each run'}${s.standbyLearned != null ? `, including a standby of about ${W(s.standbyLearned)}` : ''}. Leave a box empty to use the learned figure.` : '';
+    return `<div class="edit" data-form="${s.id}">${relink}${link}<p class="help" style="margin:0 0 .5rem">${how}${learned}${s.runs ? ` ${plural(s.runs, 'run')} so far, ${kWh(s.kwh)} in all.` : ''}${s.standbyW != null ? ` Uses about ${W(s.standbyW)} while idle.` : ''}</p><div class="row2">
+      <div><label class="l">Name</label><input class="form-control" data-f="name" value="${esc(s.name)}" maxlength="60"></div>
+      <div><label class="l">Icon</label>${iconSelect('ic-' + s.id, s.icon)}</div>
+      <div><label class="l">Room</label>${roomPicker('ed-' + s.id, s.room)}</div>
+      <div><label class="l">Matter outlet in Apple Home</label><select class="form-control" data-f="exposed"><option value="1"${s.exposed ? ' selected' : ''}>Yes, with watts and energy</option><option value="0"${s.exposed ? '' : ' selected'}>No</option></select></div>
+      <div><label class="l">Outlet shows On</label><select class="form-control" data-f="steady"><option value="off"${steady === 'off' ? ' selected' : ''}>While it's running</option><option value="idle"${steady === 'idle' ? ' selected' : ''}>Through short pauses</option><option value="always"${steady === 'always' ? ' selected' : ''}>Always (fridge, freezer)</option></select></div>
+      <div><label class="l">Pauses up to (minutes)</label><input class="form-control" type="number" min="1" max="180" data-f="idle" value="${s.steadyIdleMin}"></div>
+      <div><label class="l">Running tile (HomeKit)</label><select class="form-control" data-f="status">${Object.entries(TILE).map(([k, l]) => `<option value="${k}"${k === s.statusType ? ' selected' : ''}>${l}</option>`).join('')}</select>
+        <div class="help">On while it runs; tapping it in the Home app does nothing. Humidifier tiles also show a humidity, and heater and air conditioner tiles a temperature: from a sensor this plugin reads (a Matter hub's, say), otherwise 50% or 20°C.</div></div>
+      <div><label class="l">Copies of the running tile</label><input class="form-control" type="number" min="1" max="10" data-f="count" value="${s.statusCount}"><div class="help">One for each room you want it in.</div></div>
+      ${s.metered && !s.estimated ? `<div><label class="l">Running above (W) <span class="muted">· ${SRC[s.runSrc]}</span></label><input class="form-control" type="number" min="0.5" step="0.5" data-f="runW" value="${s.runSrc === 'set' ? s.runW : ''}" placeholder="${s.runW} (${SRC[s.runSrc]})"></div>
+        <div><label class="l">Finished after this long below (min) <span class="muted">· ${SRC[s.finishSrc]}</span></label><input class="form-control" type="number" min="0" max="240" step="0.5" data-f="finishMin" value="${s.finishSrc === 'set' ? s.finishMin : ''}" placeholder="${s.finishMin} (${SRC[s.finishSrc]})"></div>` : ''}
+      ${s.estimated ? `<div><label class="l">Watts (empty = learned, about ${W(s.estNow)})</label><input class="form-control" type="number" min="0.1" step="0.1" data-f="estW" value="${s.estW ?? ''}"></div>` : ''}
+    </div>
+    ${s.metered && !s.estimated ? `<div style="margin-top:.7rem"><b style="font-size:.9em">Cycles learned</b>
+      ${s.cycles.length ? `<div class="scroll"><table><tbody>${s.cycles.map(c => `<tr><td>${esc(c.name)}</td><td class="num">about ${dur(c.dur)}</td><td class="num">${kWh(c.kwh)}</td><td class="muted">${plural(c.n, 'run')}</td>
+        <td class="actions"><button class="btn btn-link btn-sm" data-cyname="${esc(c.id)}" data-sig="${s.id}" data-cur="${esc(c.name)}">Rename</button><button class="btn btn-link btn-sm" data-cyforget="${esc(c.id)}" data-sig="${s.id}" title="Forget this cycle">✕</button></td></tr>`).join('')}</tbody></table></div>` : ''}
+      <div class="help">${s.cycles.length ? 'Name them after the programmes they are (Eco, Quick…). ' : ''}Each full run is matched by its power pattern and length; runs that look alike are one cycle. While it runs, the time left comes from the cycle it looks like so far (shown as "probably…" until the patterns tell them apart), and on the Faucet running tile in Apple Home.</div></div>` : ''}
+    <div class="gap" style="margin-top:.7rem"><button class="btn btn-primary btn-sm" data-save="${s.id}">Save</button><button class="btn btn-secondary btn-sm" data-cancel>Cancel</button>
+      ${s.devId ? `<button class="btn btn-outline-secondary btn-sm" data-untrack="${s.id}">Stop tracking its device</button>` : ''}
+      ${s.metered && !s.estimated && (s.learnCycles || s.runSrc === 'learned' || s.finishSrc === 'learned') ? `<button class="btn btn-outline-secondary btn-sm" data-forgetlearn="${s.id}">Forget what was learned</button>` : ''}
+      <button class="btn btn-outline-danger btn-sm" data-forget="${s.id}" style="margin-left:auto">Forget</button></div></div>`;
+  }
+
+  // ----- Settings → Shellys and Matter devices: the hardware, one row each, with what it reads -----
+  const MSTAT = { connected: ['ok', 'Connected'], connecting: ['wait', 'Connecting…'], reconnecting: ['wait', 'Reconnecting…'], pairing: ['wait', 'Pairing… (up to 3 minutes)'], offline: ['', 'Offline'], failed: ['', 'Failed'] };
+  const readsOf = parts => parts.length ? parts.map(d => { const t = V.sigs.find(x => x.id === d.tracked);
+    return `${esc(d.name)}${t ? ` <span class="muted">→ ${esc(t.name)}</span>` : d.hidden ? ' <span class="muted">(hidden)</span>' : ' <span class="muted">(not set up)</span>'}`; }).join(' · ') : '<span class="muted">nothing to read yet</span>';
+  function renderDev() {
+    const sys = V.matterSystem;
+    put('#matterSys', sys.ok ? '' : `<div class="note">Matter devices can't be read: ${esc(sys.error)}</div>`);
+    const groups = [];
+    for (const s of V.shelly) {
+      const parts = V.devices.filter(d => d.protocol === 'shelly' && d.host === s.host && !d.sensor);
+      groups.push({ head: `${esc(s.name || s.model || s.host)} <span class="muted">· Shelly${s.kind ? ', ' + ({ homekit: 'HomeKit firmware', rpc: 'Gen2+', gen1: 'Gen1' }[s.kind] || s.kind) : ''} · ${esc(s.host)}</span>`,
+        status: `<span class="dot ${s.ok ? 'ok' : s.ok == null ? 'wait' : ''}"></span>${esc(s.ok ? 'answering' : s.msg)}${!s.ok && s.seen ? ` <span class="muted">(last seen ${ago(s.seen)})</span>` : ''}`,
+        actions: `<button class="btn btn-link btn-sm" data-shrm="${esc(s.host)}" title="Remove this address">✕</button>`, parts, sort: (s.name || s.host).toLowerCase(),
+        kind: 'shelly', problem: s.ok === false, text: `${s.name} ${s.model} ${s.host} ${parts.map(d => d.name).join(' ')}` });
+    }
+    for (const m of V.matter) {
+      const [c, l] = MSTAT[m.status] || ['', m.status], all = V.devices.filter(d => d.source === m.id), parts = all.filter(d => !d.sensor), sens = all.length - parts.length;
+      groups.push({ head: `${esc(m.name)} <span class="muted">· Matter${m.product ? ', ' + esc(m.product) : ''}${sens ? ` · ${plural(sens, 'sensor')} (not used)` : ''}</span>`,
+        status: `<span class="dot ${c}"></span>${esc(l)}${m.error ? `<div class="err">${esc(m.error)}</div>` : ''}`,
+        actions: `${['failed', 'offline'].includes(m.status) ? `<button class="btn btn-link btn-sm" data-mretry="${m.id}">Try again</button>` : ''}<button class="btn btn-link btn-sm" data-mremove="${m.id}" title="Remove">✕</button>`, parts, sort: m.name.toLowerCase(),
+        kind: 'matter', problem: ['failed', 'offline'].includes(m.status), text: `${m.name} ${m.product} ${parts.map(d => d.name).join(' ')}` });
+    }
+    const total = groups.length, na = groups.filter(g => g.problem).length;
+    put('#sum-set', na ? `${plural(na, 'device')} not answering` : !V.settings.em.host ? 'meter not set up' : !V.em.ok && V.em.msg !== 'Connecting…' ? 'meter not answering' : '');
+    $('#devFilters').style.display = total > 3 || F.dq || F.dshow ? '' : 'none';
+    if (!total) { put('#dcount', ''); return put('#dev', '<p class="muted">None yet. Add a Shelly or a Matter device below.</p>'); }
+    const show = F.dshow || '', shown = groups.filter(g => !(show === 'problem' && !g.problem) && !(show === 'shelly' && g.kind !== 'shelly') && !(show === 'matter' && g.kind !== 'matter') && (!F.dq || hasAll(g.text, F.dq)))
+      .sort((a, b) => (b.problem - a.problem) || a.sort.localeCompare(b.sort));
+    put('#dcount', shown.length !== total ? `${shown.length} of ${total}` : plural(total, 'device'));
+    if (!shown.length) return put('#dev', `<p class="muted">No device matches. <span class="linky" data-clearf="d">Show all</span></p>`);
+    put('#dev', `<div class="scroll"><table><thead><tr><th>Device</th><th>Status</th><th></th></tr></thead><tbody>
+      ${shown.map(g => `<tr><td>${g.head}<div style="font-size:.85em;margin-top:.15rem">${readsOf(g.parts)}</div></td><td>${g.status}</td><td class="actions">${g.actions}</td></tr>`).join('')}</tbody></table></div>`);
+  }
+
+  // ----- Settings: meter, plan (with Cheap Power Now), Apple Home, Data -----
+  function renderSettings() {
+    renderMeter(); renderDev(); renderPlan(); renderTiles(); renderWeb(); renderData();
+  }
+  function renderMeter() {
+    const em = V.settings.em, chs = V.em.channels || [];
+    if (!$('#card-meter')._init) { $('#emHost').value = em.host; $('#threshold').value = V.settings.threshold; $('#card-meter')._init = true; if (!em.host) $('#sec-set').open = true; }
+    const opts = [['auto', 'First meter found'], ...chs.map(c => [c.key, `${c.label} (now ${W(c.p)})`]), ['sum', 'All clamps added together']];
+    if (!opts.some(o => o[0] === em.channel)) opts.push([em.channel, em.channel]);
+    put('#emChannel', opts.map(([k, l]) => `<option value="${esc(k)}"${k === em.channel ? ' selected' : ''}>${esc(l)}</option>`).join(''));
+  }
+  const hours = v => Array.from({ length: 25 }, (_, h) => `<option value="${h}"${h === v ? ' selected' : ''}>${String(h).padStart(2, '0')}:00</option>`).join('');
+  function renderPlan() {
+    const T = planDraft || V.settings.tariff, cur = V.settings.currency, tou = T.mode === 'tou' && T.periods.length;
+    put('#plan', `<div class="row2">
+      <div><label class="l">Plan</label><select class="form-control" id="pMode"><option value="single"${T.mode !== 'tou' ? ' selected' : ''}>Flat rate</option><option value="tou"${T.mode === 'tou' ? ' selected' : ''}>Time of use</option></select></div>
+      <div><label class="l">${T.mode === 'tou' ? 'Rate outside the periods' : 'Rate'} (per kWh)</label><input class="form-control" id="pRate" type="number" min="0" step="0.0001" value="${T.rate || ''}"></div>
+      <div><label class="l">Daily charge</label><input class="form-control" id="pFixed" type="number" min="0" step="0.01" value="${T.fixed || ''}"></div>
+      <div><label class="l">Tax (%)</label><input class="form-control" id="pTax" type="number" min="0" max="50" step="0.1" value="${T.tax || ''}"><label style="font-size:.85em;margin-top:.3rem"><input type="checkbox" id="pTaxIncl"${T.taxIncl !== false ? ' checked' : ''}> Prices already include it</label></div>
+      <div><label class="l">Currency symbol</label><input class="form-control" id="pCur" maxlength="4" value="${esc(cur)}"></div>
+    </div>
+    ${T.mode === 'tou' ? `<div class="scroll" style="margin-top:.7rem"><table><thead><tr><th>Period</th><th>From</th><th>To</th><th>Days</th><th>Rate</th><th></th></tr></thead><tbody>${T.periods.map((p, i) => `<tr data-per="${i}">
+      <td><input class="form-control form-control-sm" data-p="name" value="${esc(p.name)}" maxlength="30"></td>
+      <td><select class="form-control form-control-sm" data-p="from">${hours(p.from)}</select></td><td><select class="form-control form-control-sm" data-p="to">${hours(p.to)}</select></td>
+      <td><select class="form-control form-control-sm" data-p="days">${[['all', 'Every day'], ['weekdays', 'Weekdays'], ['weekends', 'Weekends']].map(([k, l]) => `<option value="${k}"${p.days === k ? ' selected' : ''}>${l}</option>`).join('')}</select></td>
+      <td><input class="form-control form-control-sm" type="number" min="0" step="0.0001" data-p="rate" value="${p.rate}"></td><td><button class="btn btn-link btn-sm" data-delper="${i}">✕</button></td></tr>`).join('')}</tbody></table></div>
+      <button class="btn btn-link btn-sm" id="addPer"${T.periods.length >= 8 ? ' disabled' : ''}>+ Add a period</button><div class="help">A period can run past midnight (21:00 to 07:00). Hours outside every period use the rate above.</div>
+      <label style="margin-top:.6rem;display:block"><input type="checkbox" id="pCheap"${V.settings.cheapTile ? ' checked' : ''}${tou ? '' : ' disabled'}> "Cheap Power Now" tile in Apple Home</label><div class="help">An occupancy sensor that's on during the cheapest hours of this plan, for automations.</div>` : ''}
+    <div class="gap" style="margin-top:.7rem"><button class="btn btn-primary btn-sm" id="savePlan">Save</button>${planDraft ? '<span class="muted">Not saved yet</span>' : ''}</div>`);
+  }
+  function readPlan() {
+    const T = { ...(planDraft || V.settings.tariff) };
+    T.mode = $('#pMode').value; T.rate = +$('#pRate').value || 0; T.fixed = +$('#pFixed').value || 0; T.tax = +$('#pTax').value || 0; T.taxIncl = $('#pTaxIncl').checked;
+    T.periods = $$('#plan tr[data-per]').map(tr => { const g = k => tr.querySelector(`[data-p="${k}"]`).value; return { name: g('name'), from: +g('from'), to: +g('to'), days: g('days'), rate: +g('rate') || 0 }; });
+    if (T.mode === 'tou' && !$$('#plan tr[data-per]').length) T.periods = (planDraft || V.settings.tariff).periods;
+    return T;
+  }
+  // the plugin's own web page: switched on and given a PIN here, in the Homebridge UI only
+  function renderWeb() {
+    const w = V.web;
+    if (HB.web) return put('#webcard', `<p class="help" style="margin:0">You're on the web page now. Its PIN, and switching it off, are on the plugin's settings page in the Homebridge UI.</p>`);
+    put('#webcard', `<p class="help" style="margin-top:0">The same page in a full browser window, for phones and computers on your home network only, behind a PIN.</p>
+      ${!w.port ? '<p class="muted">Switched off in config.json ("webPort": 0).</p>' : `
+      <label><input type="checkbox" id="webOn"${w.on ? ' checked' : ''}> Web page on</label>
+      ${w.on && w.running ? `<p style="margin:.4rem 0">${w.urls.length ? `Open ${w.urls.map(u => `<b>${esc(u)}</b>`).join(' or ')}` : `Open http://&lt;this computer's address&gt;:${w.port}/`}${w.pinSet ? '' : ' <span class="err">· set a PIN first</span>'}</p>` : ''}
+      <div class="gap" style="margin-top:.4rem"><input class="form-control" id="webPin" type="password" autocomplete="new-password" placeholder="${w.pinSet ? 'New PIN' : 'PIN (4 or more characters)'}" style="max-width:14rem"><button class="btn btn-primary btn-sm" id="saveWebPin">${w.pinSet ? 'Change PIN' : 'Set PIN'}</button>
+        ${w.sessions ? `<button class="btn btn-outline-secondary btn-sm" id="webSignOut">Sign out ${plural(w.sessions, 'browser')}</button>` : ''}</div>
+      <div class="help">Changing the PIN signs every browser out. Five wrong PINs make that device wait 10 minutes.</div>`}`);
+  }
+  function renderTiles() {
+    const S = V.settings;
+    put('#tiles', `<div class="row2">
+      <div><label><input type="checkbox" id="tOther"${S.other.on ? ' checked' : ''}> "Other" outlet</label><div class="help">Carries what your appliances don't explain, so the outlets add up to the whole house.</div></div>
+      <div><label class="l">Its name</label><input class="form-control" id="tOtherName" value="${esc(S.other.name)}" maxlength="32"></div>
+    </div><div class="gap" style="margin-top:.6rem"><button class="btn btn-primary btn-sm" id="saveTiles">Save</button></div>
+    <div class="help" style="margin-top:.6rem">Each appliance's own tiles are set with its Edit button, and Cheap Power Now with the electricity plan. Outlets come over Matter; running tiles and Cheap Power Now over HomeKit, so this plugin's child bridge needs both on.</div>`);
+  }
+  function renderData() {
+    const B = V.backups || [], imp = V.imported, nice = n => n.replace(/^shelly-home-energy-|\.json$/g, '').replace(/^(\d{4}-\d\d-\d\d)-(\d\d)(\d\d)(\d\d)$/, '$1 $2:$3:$4');
+    put('#data', `<b>Import from backup</b>
+      <p class="help">Restores your appliances (with their Apple Home tiles), power steps, runs, daily and hourly energy, learned watts, Matter devices and energy settings from a backup. Nothing else in the file is kept, and never a web page PIN. Importing again replaces what came from the last import.</p>
+      ${B.length ? `<div class="scroll"><table><thead><tr><th>Backups on the Homebridge computer</th><th class="num">Size</th><th></th></tr></thead><tbody>${B.map(f => `<tr><td>${esc(nice(f.name))}</td><td class="num">${Math.round(f.size / 1024)} KB</td><td class="actions"><button class="btn btn-link btn-sm" data-impbk="${esc(f.name)}">Import</button></td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">No backups on the Homebridge computer yet.</p>'}
+      <div class="gap" style="margin:.6rem 0"><label class="btn btn-outline-secondary btn-sm" style="margin:0">Import a backup file…<input type="file" id="impFile" accept=".json,application/json" hidden></label><span id="impMsg" class="muted"></span></div>
+      ${imp ? `<div class="note">Last import: ${esc(imp.from)}, ${new Date(imp.at).toLocaleString()}: ${imp.counts.appliances} appliances, ${imp.counts.steps} steps, ${imp.counts.days} days of energy, ${imp.counts.matter} Matter devices.</div>` : ''}
+      <p style="margin-top:1rem"><b>Download a backup</b> <span class="help">everything this plugin has learned and recorded (never the web page's PIN). It's saved on the Homebridge computer, where the newest 10 are kept and listed above, and downloaded to this device where the browser allows it.</span></p><button class="btn btn-outline-secondary btn-sm" id="export">Download a backup</button>`);
+  }
+
+  // ---------- Find Shellys ----------
+  const lc = v => String(v || '').toLowerCase();
+  function foundState(f) {
+    const hosts = V.settings.shellyHosts.map(lc), as = hosts.find(h => h === lc(f.host) || h === lc(f.ip));
+    const added = !!as || (!!f.idPrefix && V.devices.some(d => d.id.startsWith(f.idPrefix)));
+    return { added, as, canName: !!as && as === lc(f.ip) && lc(f.host) !== lc(f.ip), meter: [lc(f.ip), lc(f.host)].includes(lc(V.settings.em.host)) };
+  }
+  function renderFound() {
+    if (finding) return put('#found', `<p class="muted" style="margin:.5rem 0 0">Looking… this takes about 10 seconds.</p>`);
+    if (!FOUND) return put('#found', '');
+    const F = FOUND.found, nets = esc(FOUND.networks.join(', '));
+    if (!F.length) return put('#found', `<div class="note" style="margin-top:.5rem">No Shellys answered at the ${FOUND.scanned} addresses on ${nets}. If your Shellys are on a separate network for smart devices, or switched off, add them by address below.</div>`);
+    const rows = F.map(f => {
+      const st = foundState(f), what = f.password ? '<span class="pill warn">password set</span> can\'t be read until device authentication is turned off in the Shelly app'
+        : f.channels ? `${f.channels} channel${f.channels === 1 ? '' : 's'}${f.measures ? ', measures watts' : ', on/off only'}${f.parts.length ? `<div class="muted" style="font-size:.85em">${f.parts.map(esc).join(', ')}</div>` : ''}` : 'no relays or power meters';
+      const kind = f.kind === 'homekit' ? 'HomeKit firmware' : f.gen ? `Gen${f.gen}` : '';
+      const addr = `${esc(f.host)}${f.host !== f.ip ? `<div class="muted" style="font-size:.85em">${esc(f.ip)}</div>` : ''}`;
+      const act = st.added ? `<span class="muted">Added</span>${st.canName ? ` <button class="btn btn-link btn-sm" data-usename="${esc(f.ip)}" data-to="${esc(f.host)}" title="Keep working when the router gives it a new address">Use its name</button>` : ''}`
+        : f.password ? '' : `<button class="btn btn-link btn-sm" data-addfound="${esc(f.host)}">Add</button>`;
+      return `<tr><td>${esc(f.name || f.app || f.model || 'Shelly')}${st.meter ? ' <span class="pill">whole-house meter</span>' : ''}<div class="muted" style="font-size:.85em">${esc([f.model, kind].filter(Boolean).join(' · '))}</div></td><td>${what}</td><td>${addr}</td><td class="actions">${act}</td></tr>`;
+    }).join('');
+    const fresh = F.filter(f => !f.password && !foundState(f).added);
+    put('#found', `<p style="margin:.5rem 0 .3rem">Found ${F.length} Shelly${F.length === 1 ? '' : 's'} at ${FOUND.scanned} addresses on ${nets}${fresh.length ? `, ${fresh.length} not added yet` : ', all added'}.
+        ${fresh.length > 1 ? `<button class="btn btn-primary btn-sm" id="addAllFound">Add all ${fresh.length}</button>` : ''} <button class="btn btn-link btn-sm" id="closeFound">Close</button></p>
+      <div class="scroll"><table><thead><tr><th>Shelly</th><th>What it gives</th><th>Address</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+      <p class="help" style="margin:.3rem 0 0">A .local name is used where the Shelly has one that works from this computer, so it keeps working when your router gives it a new address.</p>`);
+  }
+  async function doFind() {
+    finding = true; renderFound(); $('#findShellys').disabled = true;
+    try { FOUND = await call('shellyFind'); }
+    catch (e) { if (!e.shown) HB.toast.error(e.message, 'Find Shellys'); }
+    finally { finding = false; $('#findShellys').disabled = false; renderFound(); }
+  }
+
+  // ---------- actions ----------
+  document.addEventListener('click', async ev => {
+    const link = ev.target.closest('[data-goto]'); if (link) return openSec(link.dataset.goto);
+    const clr = ev.target.closest('[data-clearf]'); if (clr) { const a = clr.dataset.clearf === 'a';
+      for (const id of a ? ['aq', 'aroom', 'ashow'] : ['dq', 'dshow']) { F[id] = ''; $('#' + id).value = ''; } saveF(); return a ? renderAppl() : renderDev(); }
+    const b = ev.target.closest('button'); if (!b || b.closest('.ask')) return; const d = b.dataset;
+    if (d.edit) { editing = editing === d.edit ? null : d.edit; naming = null; renderAppl(); }
+    else if (d.cancel !== undefined) { editing = null; naming = null; renderAppl(); renderPat(); }
+    else if (d.save) {
+      const f = $(`[data-form="${d.save}"]`), g = k => f.querySelector(`[data-f="${k}"]`)?.value, st = g('steady');
+      const room = roomOf('ed-' + d.save); if (room === null) return HB.toast.error('Type the new room\'s name', 'Shelly Home Energy');
+      const o = { id: d.save, name: g('name'), icon: $('#ic-' + d.save).value || null, room, exposed: g('exposed') === '1', steadyOutlet: st === 'always' ? true : st === 'idle' ? 'idle' : false,
+        steadyIdleMin: +g('idle') || 10, statusType: g('status'), statusCount: +g('count') || 1 };
+      if (g('runW') != null) o.runW = g('runW') === '' ? null : +g('runW'); if (g('finishMin') != null) o.finishMin = g('finishMin') === '' ? null : +g('finishMin');
+      if (await act('editSig', o, 'Saved') === undefined) return;
+      if (g('estW') != null) await act('estWatts', { id: d.save, watts: g('estW') === '' ? null : +g('estW') });
+      editing = null; renderAppl();
+    }
+    else if (d.untrack) { if (await ask(b, 'Stop tracking its device? The appliance keeps its history and is recognised from whole-house steps again.', { ok: 'Stop tracking' })) { await act('untrack', { id: d.untrack }, 'Stopped tracking'); editing = null; renderAppl(); } }
+    else if (d.forget) { const s = V.sigs.find(x => x.id === d.forget); if (s && await ask(b, `Forget "${s.name}"? Its tiles leave Apple Home (with any automations that use them) and its steps go back to unnamed. Its energy stays in the daily totals.`, { ok: 'Forget', danger: true })) { await act('forgetSig', { id: d.forget }, 'Forgotten'); editing = null; renderAppl(); } }
+    else if (d.name) { naming = naming === d.name ? null : d.name; editing = null; renderPat(); setTimeout(() => $('#nmName')?.focus(), 50); }
+    else if (d.doname) { const name = $('#nmName').value.trim(); if (!name) return HB.toast.error('Give it a name', 'Shelly Home Energy');
+      const room = roomOf('nm'); if (room === null) return HB.toast.error('Type the new room\'s name', 'Shelly Home Energy');
+      if (await act('nameCluster', { key: d.doname, name, icon: $('#nmIcon').value || null, room }, `Named "${name}"`) !== undefined) { naming = null; renderPat(); renderAppl(); } }
+    else if (d.yes) { const p = V.patterns.find(x => x.key === d.yes); if (p?.suggestion) await act('nameCluster', { key: p.key, name: p.suggestion.name, icon: p.suggestion.icon }, `Named "${p.suggestion.name}"`); }
+    else if (d.no) { const p = V.patterns.find(x => x.key === d.no); if (p?.suggestion) await act('dismiss', { name: p.suggestion.name, w: p.mean }); }
+    else if (d.track) {
+      const dv = V.devices.find(x => x.id === d.track); if (!dv) return;
+      let watts = null;
+      if (typeof dv.watts !== 'number') {
+        const est = dv.est?.w; const a = await ask(b, `"${dv.name}" doesn't measure its own power. Watts it uses when on${est ? ` (learned: about ${Math.round(est)} W; leave empty to use that)` : ''}:`, { input: '', placeholder: est ? String(Math.round(est)) : 'watts', ok: 'Track' });
+        if (a === null) return; if (a.trim()) watts = +a.trim(); else if (!est) return HB.toast.error('No learned figure yet: type its watts.', 'Shelly Home Energy');
+      }
+      await act('track', { devId: dv.id, watts }, `Tracking "${dv.name}"`);
+    }
+    else if (d.dolink) {
+      const sel = $(`[data-link="${d.dolink}"]`), dv = V.devices.find(x => x.id === sel?.value), s = V.sigs.find(x => x.id === d.dolink);
+      if (!dv) return HB.toast.error('Choose its device first', 'Shelly Home Energy');
+      let watts = null;
+      if (typeof dv.watts !== 'number') {
+        const est = dv.est?.w; const a = await ask(b, `"${dv.name}" only switches on and off. Watts "${s.name}" uses when on${est ? ` (learned: about ${Math.round(est)} W; leave empty to use that)` : ''}:`, { input: '', placeholder: est ? String(Math.round(est)) : s.watts ? String(s.watts) : 'watts', ok: 'Link' });
+        if (a === null) return; if (a.trim()) watts = +a.trim(); else if (!est) return HB.toast.error('No learned figure yet: type its watts.', 'Shelly Home Energy');
+      }
+      if (await act('track', { devId: dv.id, watts, sigId: d.dolink }, `"${s.name}" is now measured by ${dv.name}`) !== undefined) { editing = null; renderAppl(); }
+    }
+    else if (d.cyname) { const n = await ask(b, 'Name for this cycle', { input: d.cur, placeholder: 'Eco', ok: 'Rename' }); if (n?.trim()) await act('nameCycle', { id: d.sig, prog: d.cyname, name: n.trim() }, 'Renamed'); }
+    else if (d.cyforget) { if (await ask(b, 'Forget this cycle and the runs it was learned from? It\'s learned again if it runs again.', { ok: 'Forget', danger: true })) await act('forgetCycle', { id: d.sig, prog: d.cyforget }, 'Forgotten'); }
+    else if (d.forgetlearn) { if (await ask(b, 'Forget the running level and finish wait learned for this appliance? It goes back to the defaults (5 W, 5 minutes) and learns again from its next runs.', { ok: 'Forget' })) { await act('forgetLearned', { id: d.forgetlearn }, 'Forgotten'); renderAppl(); } }
+    else if (d.keep) { if (await act('keepSteps', { id: d.keep }, 'Kept on steps') !== undefined) { editing = null; renderAppl(); } }
+    else if (d.tipno) { await act('dismissTip', { key: d.tipno }); }
+    else if (d.tipsmore !== undefined) { allTips = !allTips; renderTips(); }
+    else if (d.tipsall !== undefined) { await act('dismissTip', {}); }
+    else if (d.andel) { await act('dismissAnomaly', { id: d.andel }); renderSummary(); }
+    else if (d.anclear !== undefined) { if (await ask(b, 'Clear all unusual runs from the list?', { ok: 'Clear all' })) { await act('dismissAnomaly', {}); renderSummary(); } }
+    else if (d.hide) await act('hideDevice', { id: d.hide, hide: true });
+    else if (d.unhide) await act('hideDevice', { id: d.unhide, hide: false });
+    else if (d.allfound !== undefined) { allFound = !allFound; renderPat(); }
+    else if (d.showhidden !== undefined) { showHidden = !showHidden; renderPat(); }
+    else if (d.estreset) { if (await ask(b, 'Forget the readings learned for this device?', { ok: 'Forget them' })) await act('estReset', { devId: d.estreset }); }
+    else if (d.shrm) { if (await ask(b, `Stop reading the Shelly at ${d.shrm}? Appliances tracked through it stop getting readings until you track them again or add it back.`, { ok: 'Remove', danger: true }))
+      await act('setSettings', { shellyHosts: V.settings.shellyHosts.filter(h => h !== d.shrm) }, 'Removed'); }
+    else if (d.mretry) { const code = await ask(b, 'Turn on pairing mode for the device in the Home app again, and paste the new code:', { input: '', placeholder: '1234-567-8901', ok: 'Pair' }); if (code) await act('matterRetry', { id: d.mretry, code }, 'Pairing…'); }
+    else if (d.mremove) { const m = V.matter.find(x => x.id === d.mremove); if (m && await ask(b, `Remove "${m.name}"? This plugin leaves the device; it stays in Apple Home. Appliances it measured go back to being recognised from steps.`, { ok: 'Remove', danger: true })) await act('matterRemove', { id: m.id }, 'Removed'); }
+    else if (d.delper) { planDraft = readPlan(); planDraft.periods.splice(+d.delper, 1); renderPlan(); }
+    else if (d.days) { sumDays = +d.days; renderSummary(); }
+    else if (d.impbk) { if (await ask(b, 'Import this backup? Appliances and history from it replace what came from any earlier import.', { ok: 'Import' })) await doImport(() => call('importBackup', { name: d.impbk })); }
+    else if (b.id === 'saveMeter') {
+      try { await call('setSettings', { em: { host: $('#emHost').value.trim(), channel: $('#emChannel').value }, threshold: +$('#threshold').value || 40 }); await saveConfigHost($('#emHost').value.trim()); $('#meterMsg').textContent = 'Saved'; HB.toast.success('Saved', 'Whole-house meter'); await refresh(true); } catch (e) { if (!e.shown) HB.toast.error(e.message); }
+    }
+    else if (b.id === 'findShellys') doFind();
+    else if (b.id === 'closeFound') { FOUND = null; renderFound(); }
+    else if (d.addfound) await act('setSettings', { shellyHosts: [...V.settings.shellyHosts, d.addfound] }, 'Added');
+    else if (b.id === 'addAllFound') { const add = FOUND.found.filter(f => !f.password && !foundState(f).added).map(f => f.host);
+      await act('setSettings', { shellyHosts: [...V.settings.shellyHosts, ...add] }, `Added ${add.length} Shellys`); }
+    else if (d.usename) await act('setSettings', { shellyHosts: V.settings.shellyHosts.map(h => lc(h) === lc(d.usename) ? d.to : h) }, 'Now using its name');
+    else if (b.id === 'addShelly') {
+      const v = $('#shellyAdd').value.trim(); if (!v) return HB.toast.error('Type the Shelly\'s address', 'Devices');
+      if (await act('setSettings', { shellyHosts: [...V.settings.shellyHosts, ...v.split(/[\s,;]+/)] }, 'Added') !== undefined) $('#shellyAdd').value = '';
+    }
+    else if (b.id === 'addMatter') {
+      const name = $('#mName').value.trim(), code = $('#mCode').value.trim();
+      if (!name || !code) return HB.toast.error('Give it a name and paste its pairing code', 'Matter');
+      if (await act('matterAdd', { name, code }, 'Pairing… this can take a minute') !== undefined) { $('#mName').value = ''; $('#mCode').value = ''; }
+    }
+    else if (b.id === 'addPer') { planDraft = readPlan(); planDraft.periods.push({ name: 'Night', from: 21, to: 7, days: 'all', rate: 0 }); renderPlan(); }
+    else if (b.id === 'savePlan') {
+      const T = readPlan(), cheap = $('#pCheap') ? $('#pCheap').checked && T.mode === 'tou' && T.periods.length > 0 : false;
+      if (await act('setSettings', { tariff: T, currency: $('#pCur').value || '$', cheapTile: cheap }, 'Plan saved') !== undefined) { planDraft = null; renderPlan(); renderSummary(); }
+    }
+    else if (b.id === 'saveTiles') await act('setSettings', { other: { on: $('#tOther').checked, name: $('#tOtherName').value } }, 'Saved');
+    else if (b.id === 'export') doExport();
+    else if (b.id === 'saveWebPin') { const pin = $('#webPin').value; if (await act('webSetPin', { pin }, 'PIN saved') !== undefined) $('#webPin').value = ''; }
+    else if (b.id === 'webSignOut') { if (await ask(b, 'Sign every browser out of the web page? They need the PIN again.', { ok: 'Sign out' })) await act('webSignOutAll', {}, 'Signed out'); }
+  });
+  document.addEventListener('keydown', ev => { if (ev.key === 'Enter' && ev.target.id === 'shellyAdd') $('#addShelly').click(); });
+  document.addEventListener('input', ev => {
+    const id = ev.target.id; if (!['aq', 'aroom', 'ashow', 'dq', 'dshow'].includes(id)) return;
+    F[id] = ev.target.value; saveF();
+    if (V) { if (id[0] === 'a') renderAppl(); else renderDev(); }
+  });
+  document.addEventListener('change', async ev => {
+    if (ev.target.matches('[data-roomsel]')) { const box = ev.target.parentElement.querySelector('[data-roomnew]'); const nw = ev.target.value === '__new'; box.style.display = nw ? '' : 'none'; if (nw) box.focus(); return; }
+    if (ev.target.id === 'pMode') { planDraft = readPlan(); planDraft.mode = ev.target.value; if (planDraft.mode === 'tou' && !planDraft.periods.length) planDraft.periods.push({ name: 'Night', from: 21, to: 7, days: 'all', rate: 0 }); renderPlan(); }
+    else if (ev.target.closest('#plan') && ev.target.id !== 'pCheap') { planDraft = readPlan(); }
+    if (ev.target.id === 'webOn') { await act('webSet', { on: ev.target.checked }, ev.target.checked ? 'Web page on' : 'Web page off'); return; }
+    if (ev.target.id === 'impFile' && ev.target.files[0]) { const f = ev.target.files[0]; ev.target.value = ''; if (await ask(ev.target.closest('.gap'), `Import "${f.name}"? Appliances and history from it replace what came from any earlier import.`, { ok: 'Import' })) doImport(() => upload(f)); }
+  });
+
+  async function doImport(run) {
+    HB.showSpinner();
+    try { const r = await run(); HB.toast.success(`Imported ${r.counts.appliances} appliances and ${r.counts.days} days of energy.`, 'Shelly Home Energy'); await refresh(true); }
+    catch (e) { if (!e.shown) HB.toast.error(e.message, 'Import'); }
+    finally { HB.hideSpinner(); }
+  }
+  async function upload(file) {
+    if (file.size > 80 * 1024 * 1024) throw new Error('That file is too large to be an export.');
+    const text = await file.text(); $('#impMsg').textContent = 'Sending…';
+    const st = await HB.request('/upload/start', { size: text.length, name: file.name });
+    for (let i = 0, k = 0; i < text.length; i += st.piece, k++) await HB.request('/upload/piece', { id: st.id, i: k, data: text.slice(i, i + st.piece) });
+    $('#impMsg').textContent = '';
+    const r = await HB.request('/upload/finish', { id: st.id });
+    if (!r.ok) throw new Error(r.error);
+    return r.result;
+  }
+  async function doExport() {
+    const btn = $('#export'); if (btn) btn.disabled = true;
+    try {
+      const s = await HB.request('/export/start', {}); if (!s.ok) throw new Error(s.error);
+      let text = ''; for (let i = 0; i < s.n; i++) text += await HB.request('/export/piece', { id: s.id, i });
+      await refresh(true);
+      HB.toast.success(`Saved on the Homebridge computer as ${s.savedAs}, in ${s.folder}. It's listed under Import from backup.`, 'Backup');
+      // the Homebridge UI shows this page in a frame that may not allow downloads; the copy above is kept either way
+      try {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' })); a.download = s.savedAs;
+        document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+      } catch {}
+    } catch (e) { HB.toast.error(e.message, 'Backup'); }
+    finally { if (btn) btn.disabled = false; }
+  }
+  // config.json: keep the Shelly EM address there too (used on a fresh start)
+  async function pluginConfig() { const c = await HB.getPluginConfig(); return c.length ? c : [{ platform: 'ShellyHomeEnergy', name: 'Shelly Home Energy' }]; }
+  async function saveConfig(c) { await HB.updatePluginConfig(c); if (typeof HB.savePluginConfig === 'function') await HB.savePluginConfig(); }
+  async function saveConfigHost(host) { if (HB.web) return; try { const c = await pluginConfig(); if (c[0].host === host) return; c[0].host = host || undefined; await saveConfig(c); } catch (e) { console.warn(e); } }
+  refresh(true).then(() => renderSummary());
+  setInterval(() => { if (!document.hidden) { refresh(); if ($('#sec-today').open && Date.now() - (renderSummary.at || 0) > 30000) { renderSummary.at = Date.now(); renderSummary(); } } }, 3000);
+})();
+</script>

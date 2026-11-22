@@ -3,7 +3,7 @@
   "alias": "ShellyHomeEnergy",
   "displayName": "Homebridge Shelly Energy",
   "type": "module",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Homebridge plugin that learns your appliances from a Shelly whole-house energy meter and shows each one in Apple Home with live watts and energy over Matter. Local only.",
   "author": "homebridge-plugins",
   "license": "MIT",

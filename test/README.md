@@ -24,6 +24,7 @@ No Homebridge, Shelly or Matter hardware needed: everything runs against stand-i
   - `web.test.js`: the web page on port 18591 with the real plugin: host names, header and origin checks, PIN, lock-out,
     nothing secret sent, the web page can't change its own PIN.
   - `boot.test.js`: starts the real plugin on a stand-in Homebridge and drives it through the settings-page link.
+  - `config-schema.test.js`: keeps `config.schema.json` valid for the Homebridge UI and Homebridge verification.
 
 Browser test of the settings page, shown inside a sandboxed frame like the Homebridge UI (needs Python Playwright and Chrome
 at /usr/bin/google-chrome; takes about 2 minutes, because it waits for a repeating step to appear):

@@ -11,3 +11,4 @@ All notable changes to `@homebridge-plugins/homebridge-shelly-energy` will be do
 - chore: name homebridge-plugins as the copyright holder in the licence
 - chore: apply the org lint rules
 - test: run the tests with vitest, and the plugin inside homebridge against a pretend meter
+- fix(schema): list the name as required the json schema way

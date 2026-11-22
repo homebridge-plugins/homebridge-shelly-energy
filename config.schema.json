@@ -23,9 +23,10 @@
         "placeholder": "192.168.1.50"
       },
       "channel": {
-        "title": "Which reading",
+        "title": "Which meter reading (first start only; change it on the settings page)",
         "type": "string",
-        "default": "auto"
+        "default": "auto",
+        "description": "auto (the first clamp, or all three phases of a 3EM), sum (all clamps added up), or one clamp such as em1:1 or emeter:1."
       },
       "webPort": {
         "title": "Web page port (0 = no web page)",
@@ -33,7 +34,7 @@
         "default": 8591,
         "minimum": 0,
         "maximum": 65535,
-        "description": "The plugin's own page at http://<this computer>:8591/, for your home network only, behind a PIN set on the settings page."
+        "description": "The port of the plugin's own web page, for your home network only. It opens once a PIN is set on the settings page. 0 turns the web page off."
       },
       "matterLogLevel": {
         "title": "Matter log detail",

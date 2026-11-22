@@ -16,6 +16,7 @@ All notable changes to `@homebridge-plugins/homebridge-shelly-energy` will be do
 - fix: let an appliance a device used to measure be merged into another
 - fix: don't end a variable load's run with the cap meant for on/off appliances
 - fix: stop a failed recording's timer, so it can't cut the next recording short
+- fix: compare the settings page's key as bytes, so an odd key can't crash homebridge
 
 ## v1.0.0 (2026-11-22)
 

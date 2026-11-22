@@ -21,3 +21,4 @@ All notable changes to `@homebridge-plugins/homebridge-shelly-energy` will be do
 - fix(web): only open the web page's port once a pin is set
 - fix(web): end web page sign-ins after 180 days, as their cookie does
 - fix: keep the settings page's socket in a private folder when the storage path is long
+- fix: only run the plugin's own action names

@@ -49,7 +49,7 @@
   "dependencies": {
     "@homebridge/plugin-ui-utils": "^2.3.0",
     "@matter/main": "^0.17.9",
-    "@matter/nodejs": "^0.17.9",
+    "@matter/nodejs": "^0.18.0",
     "@project-chip/matter.js": "^0.17.9"
   },
   "devDependencies": {

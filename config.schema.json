@@ -4,7 +4,8 @@
   "singular": true,
   "customUi": true,
   "customUiPath": "./lib/homebridge-ui",
-  "headerDisplay": "Everything is set up on this page. Turn on **Matter** (and **HomeKit**, for running tiles) for this plugin's child bridge in its Bridge Settings.",
+  "headerDisplay": "<p align=\"center\"><img width=\"250px\" src=\"https://raw.githubusercontent.com/homebridge-plugins/homebridge-shelly-energy/latest/branding/Homebridge_x_Shelly.png\"></p><p align=\"center\">For help and support please visit our <a href=\"https://github.com/homebridge-plugins/homebridge-shelly-energy/wiki\">GitHub Wiki</a>. We hope you find this plugin useful!</p>",
+  "footerDisplay": "Everything is set up on this page. Turn on **Matter** for the bridge this plugin runs on (and **HomeKit**, for running tiles).",
   "schema": {
     "type": "object",
     "required": [

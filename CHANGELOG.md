@@ -29,3 +29,4 @@ All notable changes to `@homebridge-plugins/homebridge-shelly-energy` will be do
 - fix: rename homekit tiles with updateDisplayName
 - fix: remove cached tiles and outlets the plugin no longer has
 - fix: stop asking for a child bridge when matter is on for the main bridge
+- perf: save power steps with the readings every 5 minutes, not within 30 seconds

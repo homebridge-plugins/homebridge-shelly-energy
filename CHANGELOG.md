@@ -15,6 +15,7 @@ All notable changes to `@homebridge-plugins/homebridge-shelly-energy` will be do
 - fix: move a merged appliance's shared steps across too, so its runs still end
 - fix: let an appliance a device used to measure be merged into another
 - fix: don't end a variable load's run with the cap meant for on/off appliances
+- fix: stop a failed recording's timer, so it can't cut the next recording short
 
 ## v1.0.0 (2026-11-22)
 

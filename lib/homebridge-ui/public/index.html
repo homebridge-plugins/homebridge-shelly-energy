@@ -472,7 +472,7 @@
       ${!w.port ? '<p class="muted">Switched off in config.json ("webPort": 0).</p>' : `
       <label><input type="checkbox" id="webOn"${w.on ? ' checked' : ''}> Web page on</label>
       ${w.on && w.running ? `<p style="margin:.4rem 0">${w.urls.length ? `Open ${w.urls.map(u => `<b>${esc(u)}</b>`).join(' or ')}` : `Open http://&lt;this computer's address&gt;:${w.port}/`}${w.pinSet ? '' : ' <span class="err">· set a PIN first</span>'}</p>` : ''}
-      <div class="gap" style="margin-top:.4rem"><input class="form-control" id="webPin" type="password" autocomplete="new-password" placeholder="${w.pinSet ? 'New PIN' : 'PIN (4 or more characters)'}" style="max-width:14rem"><button class="btn btn-primary btn-sm" id="saveWebPin">${w.pinSet ? 'Change PIN' : 'Set PIN'}</button>
+      <div class="gap" style="margin-top:.4rem"><input class="form-control" id="webPin" type="password" autocomplete="new-password" placeholder="${w.pinSet ? 'New PIN' : 'PIN (6 or more characters)'}" style="max-width:14rem"><button class="btn btn-primary btn-sm" id="saveWebPin">${w.pinSet ? 'Change PIN' : 'Set PIN'}</button>
         ${w.sessions ? `<button class="btn btn-outline-secondary btn-sm" id="webSignOut">Sign out ${plural(w.sessions, 'browser')}</button>` : ''}</div>
       <div class="help">Changing the PIN signs every browser out. Five wrong PINs make that device wait 10 minutes.</div>`}`);
   }

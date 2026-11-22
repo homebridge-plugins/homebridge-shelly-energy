@@ -175,10 +175,10 @@ it('requests need the page\'s own header and origin; no PIN set means no sign-in
 })
 
 it('a PIN set in the Homebridge UI; easy PINs refused; sign in; the page works', async () => {
-  await assert.rejects(hb('webSetPin', { pin: '1111' }), /easy to guess/)
-  await assert.rejects(hb('webSetPin', { pin: '12' }), /4 to 32/)
-  await hb('webSetPin', { pin: '4826' })
-  const l = await api_('/api/login', { pin: '4826' })
+  await assert.rejects(hb('webSetPin', { pin: '111111' }), /easy to guess/)
+  await assert.rejects(hb('webSetPin', { pin: '12' }), /6 to 32/)
+  await hb('webSetPin', { pin: '482615' })
+  const l = await api_('/api/login', { pin: '482615' })
   assert.equal(l.status, 200)
   const sc = l.headers['set-cookie'][0]
   assert.match(sc, /HttpOnly/)
@@ -238,7 +238,7 @@ it('an export from the web page carries no PIN or sign-ins', async () => {
 
 it('wrong PINs lock that address out; a new PIN signs every browser out', async () => {
   for (let i = 0; i < 5; i++) assert.equal((await api_('/api/login', { pin: '0000x' })).status, 401)
-  const locked = await api_('/api/login', { pin: '4826' })
+  const locked = await api_('/api/login', { pin: '482615' })
   assert.equal(locked.status, 429)
   assert.match(locked.json.error, /Too many/)
   assert.equal(
@@ -255,7 +255,7 @@ it('wrong PINs lock that address out; a new PIN signs every browser out', async 
     200,
     'already signed in still works',
   )
-  await hb('webSetPin', { pin: '7391' })
+  await hb('webSetPin', { pin: '739164' })
   assert.equal(
     (
       await api_(

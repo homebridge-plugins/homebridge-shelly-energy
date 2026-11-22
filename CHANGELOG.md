@@ -15,3 +15,4 @@ All notable changes to `@homebridge-plugins/homebridge-shelly-energy` will be do
 - fix: add the supports-hap and supports-matter keywords
 - fix: stop reading test settings from environment variables
 - fix: refuse addresses with a leading zero, which fetch reads as another address
+- fix(web): limit wrong pins for the whole page, and ask for 6 or more characters

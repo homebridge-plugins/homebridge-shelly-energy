@@ -64,7 +64,7 @@ it('starts, works through the settings page link, and shuts down cleanly', async
   plugin(api)
   const platform = new api.Platform(log, block, api)
   platform.matterDevices.worker = path.join(HERE, 'fake-matter-worker.js')
-  // a cached HAP tile this plugin didn't publish: must survive start-up untouched
+  // a cached HAP tile this plugin no longer knows about: removed at start
   const leak = new PlatformAccessory('Water leak', uuid.generate('shelly-appliances-faucet:__water_leak__'))
   leak.context.applianceId = '__water_leak__'
   platform.configureAccessory(leak)
@@ -112,7 +112,7 @@ it('starts, works through the settings page link, and shuts down cleanly', async
       api.rec.hapReg.some(a => a.UUID === uuid.generate(`shelly-appliances-faucet:${kettle.id}`)),
       'Kettle running tile',
     )
-    assert.equal(api.rec.hapUnreg.length, 0, 'a cached tile this plugin didn\'t publish is never removed')
+    assert.deepEqual(api.rec.hapUnreg.map(a => a.displayName), ['Water leak'], 'a cached tile it no longer knows about is removed')
     // summary, export
     const s = await call('summary', { days: 7 })
     assert.ok(s.total.kwh > 0)

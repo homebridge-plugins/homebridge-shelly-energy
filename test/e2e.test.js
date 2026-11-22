@@ -5,11 +5,11 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { uuid as hapUuid } from '@homebridge/hap-nodejs'
+import { uuid as hapUuid, Service } from '@homebridge/hap-nodejs'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { startFakeEm } from './fake-shelly.js'
-import { asHomeHubSeesIt, boot, loadHomebridge, sleep, useStorage } from './harness.js'
+import { asHomeHubSeesIt, boot, homebridge, loadHomebridge, serialise, sleep, useStorage } from './harness.js'
 import { makeMatter, withMatter } from './matter-stand-in.js'
 
 const EM_PORT = 18831
@@ -30,10 +30,12 @@ function cfg(extra = {}) {
 }
 
 /** Starts the plugin with Matter on, and waits for its first whole-house reading. */
-async function start(config = cfg(), { restored = [] } = {}) {
+async function start(config = cfg(), { restored = [], cached = [] } = {}) {
   fs.rmSync(path.join(storage, 'home-energy'), { recursive: true, force: true })
   let m
   run = boot(config, {
+    cached,
+    restore: platform => restored.forEach(a => platform.configureMatterAccessory?.(structuredClone(a))),
     setup: (api) => {
       m = makeMatter(api, { restored })
       withMatter(m)(api)
@@ -95,6 +97,30 @@ describe('matter outlets', () => {
     await vi.waitFor(() => expect(run.m.registered.get(uuid).state.electricalPowerMeasurement.activePower).toBe(0), { timeout: 5000 })
     expect(run.m.registered.get(uuid).state.onOff.onOff).toBe(false)
     expect(run.m.log.errors).toEqual([])
+  })
+})
+
+describe('tiles and outlets the plugin no longer has', () => {
+  it('removes them when it starts, so none are left in Apple Home with frozen values', async () => {
+    // a tile and an outlet from an appliance in a state.json that was since lost
+    const tile = new homebridge.PlatformAccessory('Old dryer', hapUuid.generate('shelly-appliances-faucet:lost01'))
+    tile.addService(Service.Valve, 'Old dryer')
+    tile._associatedPlugin = '@homebridge-plugins/homebridge-shelly-energy'
+    tile._associatedPlatform = 'ShellyHomeEnergy'
+    const outlet = {
+      UUID: hapUuid.generate('shelly-appliances:lost01'),
+      displayName: 'Old dryer',
+      clusters: {
+        onOff: { onOff: false },
+      },
+    }
+    await start(cfg(), {
+      cached: serialise([tile]),
+      restored: [outlet],
+    })
+    await vi.waitFor(() => expect(run.m.log.unregistered).toContain('Old dryer'), { timeout: 3000 })
+    expect(run.m.registered.has(outlet.UUID)).toBe(false)
+    expect(run.unregistered.map(a => a.UUID)).toContain(tile.UUID)
   })
 })
 

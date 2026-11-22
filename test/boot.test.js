@@ -5,7 +5,6 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 
 import { it } from 'vitest'
@@ -58,13 +57,13 @@ async function until(fn, ms = 8000) {
 const call = (a, args) => callPlugin(path.join(dir, 'home-energy'), a, args)
 
 it('starts, works through the settings page link, and shuts down cleanly', async () => {
-  process.env.HE_MATTER_WORKER = path.join(HERE, 'fake-matter-worker.js')
   const em = startFakeEm(18801)
   const plug = startFakeGen2(18802, { name: 'Dryer' })
   const api = fakeApi({ storage: dir, configPath: cfgPath })
   const log = fakeLog()
   plugin(api)
   const platform = new api.Platform(log, block, api)
+  platform.matterDevices.worker = path.join(HERE, 'fake-matter-worker.js')
   // a cached HAP tile this plugin didn't publish: must survive start-up untouched
   const leak = new PlatformAccessory('Water leak', uuid.generate('shelly-appliances-faucet:__water_leak__'))
   leak.context.applianceId = '__water_leak__'

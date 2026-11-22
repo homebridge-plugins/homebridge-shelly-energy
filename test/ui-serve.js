@@ -16,7 +16,6 @@ import { startFakeEm, startFakeGen1, startFakeGen2, startFakeShelly } from './fa
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const port = +(process.argv[2] || 8599)
-process.env.HE_MATTER_WORKER = path.join(HERE, 'fake-matter-worker.js')
 const { default: plugin } = await import('../lib/index.js')
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'he-ui-'))
 const cfgPath = path.join(dir, 'config.json')
@@ -111,7 +110,7 @@ startFakeGen1(port + 6, { type: 'SHSW-PM', name: 'Workshop' })
 startFakeGen2(port + 7, { password: true, id: 'shellyplus1-locked' })
 // a device whose name is HTML: must show as text, never run
 startFakeGen1(port + 8, { type: 'SHSW-1', name: '<img src=x onerror="window.__pwned=1">Evil', mac: 'A1B2C3D4E5F7' })
-process.env.HE_SCAN_HOSTS = [1, 2, 3, 6, 7, 8].map(n => `127.0.0.1:${port + n}`).join(' ')
+const scanHosts = [1, 2, 3, 6, 7, 8].map(n => `127.0.0.1:${port + n}`)
 // the house: 300 W, a 1.2 kW load on for 20 s every 70 s, so steps to name appear quickly
 let k = 0
 setInterval(() => {
@@ -126,7 +125,12 @@ setInterval(() => {
 const api = fakeApi({ storage: dir, configPath: cfgPath })
 const log = fakeLog()
 plugin(api)
-void new api.Platform(log, config[0], api)
+const platform = new api.Platform(log, config[0], api)
+platform.matterDevices.worker = path.join(HERE, 'fake-matter-worker.js')
+platform.scanAddresses = () => ({
+  networks: ['test'],
+  hosts: scanHosts,
+})
 api.emit('didFinishLaunching')
 const H = makeHandlers(dir)
 const page = fs.readFileSync(path.join(HERE, '..', 'lib', 'homebridge-ui', 'public', 'index.html'), 'utf8')

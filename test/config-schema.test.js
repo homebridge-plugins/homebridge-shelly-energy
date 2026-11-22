@@ -2,7 +2,7 @@
  * The settings schema is checked by Homebridge's verification, and by the
  * Homebridge UI every time someone saves. These keep it valid for both.
  */
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 
 import Ajv from 'ajv'
 import { describe, expect, it } from 'vitest'
@@ -73,5 +73,14 @@ describe('the package manifest', () => {
     // supports-matter alone would tell the Homebridge UI the plugin is Matter only
     expect(pkg.keywords).toContain('supports-hap')
     expect(pkg.keywords).toContain('supports-matter')
+  })
+})
+
+describe('the code', () => {
+  it('reads no environment variables, which the verification checker flags for review', () => {
+    const files = readdirSync(new URL('../lib', import.meta.url), { recursive: true })
+      .filter(f => f.endsWith('.js') && !f.endsWith('.test.js'))
+    const reads = files.filter(f => readFileSync(new URL(`../lib/${f}`, import.meta.url), 'utf8').includes('process.env'))
+    expect(reads).toEqual([])
   })
 })

@@ -1,4 +1,4 @@
-// Stand-in for lib/matter-controller.js (HE_MATTER_WORKER): no matter.js, no network. It "pairs" with any 11-digit code
+// Stand-in for lib/matter-controller.js (the tests set it as MatterDevices' worker): no matter.js, no network. It "pairs" with any 11-digit code
 // and reports made-up devices through the real lib/matter-hub.js mapping, so the GRILLPLATS rule is exercised:
 //   code starting 1 -> node 42: a GRILLPLATS-shaped plug (ep1 OnOff + power, ep2 power only: the mirror, ignored)
 //   code starting 2 -> node 43: an Eve Energy-shaped plug (one endpoint, OnOff + power)

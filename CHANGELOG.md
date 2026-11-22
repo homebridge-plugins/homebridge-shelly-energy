@@ -13,3 +13,4 @@ All notable changes to `@homebridge-plugins/homebridge-shelly-energy` will be do
 - test: run the tests with vitest, and the plugin inside homebridge against a pretend meter
 - fix(schema): list the name as required the json schema way
 - fix: add the supports-hap and supports-matter keywords
+- fix: stop reading test settings from environment variables

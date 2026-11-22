@@ -7,7 +7,6 @@ import fs from 'node:fs'
 import http from 'node:http'
 import os from 'node:os'
 import path from 'node:path'
-import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 
 import { afterAll, beforeAll, it } from 'vitest'
@@ -101,11 +100,11 @@ function api_(url, body, cookie, extra = {}) {
 }
 
 beforeAll(async () => {
-  process.env.HE_MATTER_WORKER = path.join(HERE, 'fake-matter-worker.js')
   api = fakeApi({ storage: dir, configPath: cfg })
   log = fakeLog()
   plugin(api)
-  void new api.Platform(log, block, api)
+  const platform = new api.Platform(log, block, api)
+  platform.matterDevices.worker = path.join(HERE, 'fake-matter-worker.js')
   api.emit('didFinishLaunching')
   for (let i = 0; i < 50 && !fs.existsSync(path.join(dir, 'home-energy', 'control.json')); i++) await wait(100)
   await wait(300)

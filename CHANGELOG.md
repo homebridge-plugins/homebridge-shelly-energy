@@ -20,6 +20,7 @@ All notable changes to `@homebridge-plugins/homebridge-shelly-energy` will be do
 - fix: carry on reading when the clock is put back right after running ahead
 - fix: write the save file by its path, so the plugin checks don't see a write outside storage
 - test: split a long object in the save test, for the lint rules
+- test: wait for both matter plugs' watts before checking them
 
 ## v1.0.0 (2026-11-22)
 

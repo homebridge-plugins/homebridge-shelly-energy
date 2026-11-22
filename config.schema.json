@@ -11,8 +11,14 @@
       "name": { "title": "Name", "type": "string", "default": "Shelly Home Energy", "required": true },
       "host": { "title": "Shelly EM address (first start only; change it on the settings page)", "type": "string", "placeholder": "192.168.1.50" },
       "channel": { "title": "Which reading", "type": "string", "default": "auto" },
-      "webPort": { "title": "Web page port (0 = no web page)", "type": "integer", "default": 8591, "minimum": 0, "maximum": 65535,
-        "description": "The plugin's own page at http://<this computer>:8591/, for your home network only, behind a PIN set on the settings page." },
+      "webPort": {
+        "title": "Web page port (0 = no web page)",
+        "type": "integer",
+        "default": 8591,
+        "minimum": 0,
+        "maximum": 65535,
+        "description": "The plugin's own page at http://<this computer>:8591/, for your home network only, behind a PIN set on the settings page."
+      },
       "matterLogLevel": { "title": "Matter log detail", "type": "string", "default": "warn", "enum": ["error", "warn", "info", "debug"] }
     }
   }

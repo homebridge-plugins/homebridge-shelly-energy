@@ -23,3 +23,4 @@ All notable changes to `@homebridge-plugins/homebridge-shelly-energy` will be do
 - fix: keep the settings page's socket in a private folder when the storage path is long
 - fix: only run the plugin's own action names
 - fix: keep a gen1 em or 3em clamp chosen on the settings page
+- fix: end a learned appliance's run that goes on far longer than its usual ones

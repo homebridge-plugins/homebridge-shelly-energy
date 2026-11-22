@@ -4,13 +4,16 @@ No Homebridge, Shelly or Matter hardware needed: everything runs against stand-i
 
 - `npm test`: every test below except the browser test (vitest, about 10 seconds).
 - Unit tests, next to the code in `lib/`:
-  - `engine.test.js`: step detection, naming, stages, runs, anomalies, measured and estimated appliances, Other, costs,
-    suggestions, saving, memory caps.
+  - `engine.test.js`: step detection, naming, stages, runs, measured and estimated appliances, combined devices, rooms,
+    power factor, variable loads, Other, costs, billing period and budget, suggestions, saving, memory caps.
+  - `data.test.js`: gaps filled from the meter's count, the check against it, saving in two files, falling back to `.prev`.
+  - `recorder.test.js`: recording readings (Settings → Data → Record readings) and replaying one.
   - `shelly-devices.test.js`: home-network addresses, the Shelly EM poller, the HomeKit-firmware, Gen1 and Gen2+ readers,
-    offline and back.
+    offline and back, the live connection (WebSocket) and falling back to reading every few seconds.
   - `matter-devices.test.js`: Matter devices through `test/fake-matter-worker.js` and the real `lib/matter-hub.js`
     (GRILLPLATS mirror rule, pairing, reconnecting after a restart, controller restarts).
-  - `tiles.test.js`: Matter outlets and HAP tiles against `test/fake-homebridge.js` (identities, copies, Cheap Power Now).
+  - `tiles.test.js`: Matter outlets and HAP tiles against `test/fake-homebridge.js` (identities, copies, Cheap Power Now,
+    never removing tiles this plugin didn't publish).
   - `discover.test.js`: Find Shellys: which addresses are asked (home network only), each kind of Shelly found, .local names.
   - `cycles.test.js`: learning an appliance's cycles from runs that vary like real ones, and matching a run part-way through.
   - `import.test.js`: backups: saving, listing and restoring. `test/fixtures/backup.json` is a made-up backup in this
@@ -25,6 +28,8 @@ No Homebridge, Shelly or Matter hardware needed: everything runs against stand-i
     nothing secret sent, the web page can't change its own PIN.
   - `boot.test.js`: starts the real plugin on a stand-in Homebridge and drives it through the settings-page link.
   - `config-schema.test.js`: keeps `config.schema.json` valid for the Homebridge UI and Homebridge verification.
+- `node test/replay.js <file> [--json]` replays a real recording and reports how the engine did, including how many of the
+  measured devices' switches the whole-house meter caught.
 
 Browser test of the settings page, shown inside a sandboxed frame like the Homebridge UI (needs Python Playwright and Chrome
 at /usr/bin/google-chrome; takes about 2 minutes, because it waits for a repeating step to appear):
@@ -34,5 +39,13 @@ node test/ui-serve.js 8599 &          # the real plugin + page on stand-ins, at 
 python3 -I -u test/ui-test.py 8599 /tmp/shots
 ```
 
-Stand-ins: `fake-shelly.js` (HomeKit firmware Shelly 1, Gen1 and Gen2 Shellys, Shelly EM Gen4), `fake-matter-worker.js`
-(the Matter controller helper), `fake-homebridge.js` (HAP + api.matter, for the unit tests).
+Stand-ins: `fake-shelly.js` (HomeKit firmware Shelly 1, Gen1 and Gen2 Shellys, Shelly EM Gen4, with a small WebSocket
+server for the live connection), `fake-matter-worker.js` (the Matter controller helper), `fake-homebridge.js` (HAP +
+api.matter, for the unit tests).
+
+A fresh install (no block in config.json, plugin not running):
+
+```
+node test/ui-serve.js 8609 fresh &
+python3 -I -u test/ui-fresh.py 8609
+```

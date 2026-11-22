@@ -97,6 +97,7 @@ class Svc {
 
   updateCharacteristic(c, v) {
     this.getCharacteristic(c).value = v
+    this.sent = (this.sent || 0) + 1 // sent: updates, as HomeKit would get them
     return this
   }
 

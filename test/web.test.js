@@ -1,5 +1,6 @@
 // The plugin's own web page (lib/web.js), run with the real plugin on a stand-in Homebridge:
-// the page is served, only to home-network host names; requests need the page's header and its own origin; no PIN = no sign-in;
+// its port opens only once a PIN is set; the page is served, only to home-network host names; requests need the page's header
+// and its own origin;
 // wrong PINs lock out; signed in, the page's actions work but never the PIN ones; nothing secret reaches the page or an export.
 import assert from 'node:assert/strict'
 import { Buffer } from 'node:buffer'
@@ -125,7 +126,8 @@ it('the page is served to a home-network address, not to other host names', asyn
   const r = await req('GET', '/')
   assert.equal(r.status, 200)
   assert.match(r.body, /Shelly Home Energy/)
-  assert.match(r.body, /window\.homebridge/)
+  assert.match(r.body, /<script src="web-shim.js"><\/script>/)
+  assert.match(r.body, /<script src="app.js"><\/script>/)
   assert.match(r.headers['content-security-policy'], /frame-ancestors 'none'/)
   assert.equal(r.headers['x-frame-options'], 'DENY')
   assert.equal(
@@ -181,9 +183,12 @@ it('requests need the page\'s own header and origin; not signed in means nothing
 it('a PIN set in the Homebridge UI; easy PINs refused; sign in; the page works', async () => {
   await assert.rejects(hb('webSetPin', { pin: '111111' }), /easy to guess/)
   await assert.rejects(hb('webSetPin', { pin: '12' }), /6 to 32/)
+  await assert.rejects(hb('webSetPin', { pin: '4826' }), /6 to 32/, 'at least 6 characters')
+  await assert.rejects(hb('webSetPin', { pin: '123456' }), /easy to guess/)
   await hb('webSetPin', { pin: '482615' })
   const l = await api_('/api/login', { pin: '482615' })
   assert.equal(l.status, 200)
+  assert.match(l.headers['set-cookie'][0], /Max-Age=2592000/, 'signed in for 30 days')
   const sc = l.headers['set-cookie'][0]
   assert.match(sc, /HttpOnly/)
   assert.match(sc, /SameSite=Strict/)
@@ -199,7 +204,7 @@ it('a PIN set in the Homebridge UI; easy PINs refused; sign in; the page works',
   assert.equal(v.status, 200)
   assert.equal(v.json.result.ok, true)
   const w = v.json.result.result.settings.web
-  assert.deepEqual(Object.keys(w).sort(), ['on', 'pinSet', 'sessions'])
+  assert.deepEqual(Object.keys(w).sort(), ['on', 'pinSet', 'readOnly', 'sessions'])
   assert.ok(!JSON.stringify(v.json).match(/"salt"|"hash"|"tokens"/), 'no PIN hash or sign-in keys sent to the page')
 })
 
@@ -238,6 +243,100 @@ it('an export from the web page carries no PIN or sign-ins', async () => {
   const d = JSON.parse(text)
   assert.equal(d.settings.web, undefined)
   assert.ok(!/"salt"|"tokens"/.test(text))
+})
+
+it('view-only: the web page shows everything but can change nothing, and can\'t download a backup', async () => {
+  await hb('webSet', { readOnly: true })
+  const v = await api_(
+    '/api/hb',
+    {
+      route: '/call',
+      payload: { action: 'view' },
+    },
+    cookie,
+  )
+  assert.equal(v.json.result.ok, true)
+  assert.equal(v.json.result.result.web.readOnly, true)
+  assert.equal(
+    (
+      await api_(
+        '/api/hb',
+        {
+          route: '/call',
+          payload: {
+            action: 'summary',
+            args: { days: 7 },
+          },
+        },
+        cookie,
+      )
+    ).json.result.ok,
+    true,
+  )
+  for (const [action, args] of [
+    [
+      'setSettings',
+      { threshold: 60 },
+    ],
+    [
+      'roomAdd',
+      { name: 'Shed' },
+    ],
+    [
+      'forgetSig',
+      { id: 'x' },
+    ],
+  ]) {
+    const r = await api_(
+      '/api/hb',
+      {
+        route: '/call',
+        payload: { action, args },
+      },
+      cookie,
+    )
+    assert.match(JSON.stringify(r.json), /view-only/, action)
+  }
+  assert.match(
+    JSON.stringify((await api_('/api/hb', { route: '/export/start', payload: {} }, cookie)).json),
+    /view-only/,
+    'no backup download',
+  )
+  await hb('webSet', { readOnly: false })
+  assert.equal(
+    (
+      await api_(
+        '/api/hb',
+        {
+          route: '/call',
+          payload: {
+            action: 'roomAdd',
+            args: { name: 'Shed' },
+          },
+        },
+        cookie,
+      )
+    ).json.result.ok,
+    true,
+    'changes again once it is switched back',
+  )
+})
+
+it('the page\'s styles and scripts are served with it, and only those scripts may run', async () => {
+  const r = await req('GET', '/style.css')
+  assert.equal(r.status, 200)
+  assert.match(r.headers['content-type'], /text\/css/)
+  assert.match(r.body, /\.he /)
+  const js = await req('GET', '/app.js')
+  assert.equal(js.status, 200)
+  assert.match(js.headers['content-type'], /javascript/)
+  assert.match(js.body, /function renderHealth/)
+  const sh = await req('GET', '/web-shim.js')
+  assert.equal(sh.status, 200)
+  assert.match(sh.body, /window\.homebridge = /)
+  const pg = await req('GET', '/')
+  assert.ok(!/<script>/.test(pg.body), 'no script written into the page')
+  assert.match(pg.headers['content-security-policy'], /script-src 'self';/)
 })
 
 it('wrong PINs lock that address out; a new PIN signs every browser out', async () => {

@@ -2,6 +2,12 @@
 
 All notable changes to `@homebridge-plugins/homebridge-shelly-energy` will be documented in this file.
 
+## v1.1.0 (Pending Release)
+
+### Changed
+
+- feat: bring in the original author's 1.7.6 with gap filling, safer saves, rooms and recordings
+
 ## v1.0.0 (2026-11-22)
 
 ### Changed

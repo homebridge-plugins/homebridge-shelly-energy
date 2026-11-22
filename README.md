@@ -20,11 +20,15 @@ Homebridge plugin that learns your appliances from a Shelly whole-house energy m
   - learns your appliances from the power steps that repeat, and counts each one's runs and energy per day and per hour
   - shows each appliance in Apple Home as a **Matter outlet with live watts and energy**, plus an **Other** outlet for the rest
   - reads Shelly plugs, relays and meters, and Matter plugs, for exact figures, and can find your Shellys on the network
+  - keeps a **live connection** to Gen2 and newer Shellys, so each switch and change in watts arrives the moment it happens
   - learns each appliance's cycles (Eco, Quick…) and shows the time left in a run
-  - works out the cost per day and per hour, and money-saving tips from your own readings
-  - can show HomeKit tiles for when an appliance is running, and a **Cheap Power Now** tile
+  - can combine devices into one appliance (two lamps, or a hob on two circuits), and tells similar appliances apart by their power factor and start spike
+  - works out the cost per day and per hour, by appliance or by room, a forecast for the month or bill (from the bill day you set) against an optional budget, and money-saving tips from your own readings
+  - fills gaps in the readings (a restart, Wi-Fi dropping out) from the meter's own energy count, so the day's total still adds up
+  - can show HomeKit tiles for when an appliance is running, a **Cheap Power Now** tile, and alert tiles for an appliance running long or the month going over budget
+  - can record a day of readings to a file, so recognition can be checked on your real data
 - Everything stays on your home network: no account, no cloud. The plugin only reads, and never switches anything.
-- Everything is set up on the plugin's own page in the Homebridge UI.
+- Everything is set up on the plugin's own page in the Homebridge UI. The same page can also be opened from a browser on your home network, behind a PIN, and can be set to view only.
 
 ### Prerequisites
 
@@ -61,6 +65,7 @@ Homebridge plugin that learns your appliances from a Shelly whole-house energy m
 - To [@Wazza151](https://github.com/Wazza151): the creator of this plugin.
 - To the creators/contributors of [homebridge-appliance-monitor](https://github.com/rummeyer/homebridge-appliance-monitor) (MIT), whose ideas the run learning of measured appliances is based on, and whose matter.js controller calls the Matter device reading follows.
 - To the creators/contributors of [matter.js](https://github.com/matter-js/matter.js), which reads your Matter devices.
+- To Google's [Material Symbols](https://fonts.google.com/icons) (Apache License 2.0, see NOTICE), used for the appliance icons.
 - To the creators/contributors of [Homebridge](https://homebridge.io) who make this plugin possible.
 
 ### Disclaimer

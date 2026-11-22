@@ -47,6 +47,16 @@ export default antfu(
     typescript: false,
   },
   {
+    // the settings page's browser script keeps its page state below the functions that use it
+    files: ['lib/homebridge-ui/public/app.js'],
+    rules: {
+      'no-use-before-define': [
+        'error',
+        { classes: false, functions: false, variables: false },
+      ],
+    },
+  },
+  {
     files: ['**/*.md'],
     rules: {
       'perfectionist/sort-exports': 'off',

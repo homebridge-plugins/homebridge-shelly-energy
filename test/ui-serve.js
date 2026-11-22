@@ -1,6 +1,7 @@
-// node test/ui-serve.js <port> - the settings page in a browser without Homebridge: runs the real plugin (index.js) on
+// node test/ui-serve.js <port> [fresh] - the settings page in a browser without Homebridge: runs the real plugin (index.js) on
 // stand-ins (Shelly EM, a Gen2 plug, a HomeKit-firmware relay, the Matter controller), the page's real server-side handlers,
-// and a stand-in for the Homebridge UI's `homebridge` object in the page. Used by test/ui-test.py.
+// and a stand-in for the Homebridge UI's `homebridge` object in the page. Used by test/ui-test.py. With `fresh`: a new
+// install (no block in config.json, plugin not running), used by test/ui-fresh.py.
 
 /* eslint-disable no-console, antfu/no-top-level-await -- a script run by hand for the browser test */
 import fs from 'node:fs'
@@ -122,16 +123,59 @@ setInterval(() => {
 setInterval(() => {
   relay.st.state = !relay.st.state
 }, 45000)
+// a made-up yesterday and today so far, minute by minute (always-on, a fridge cycling, a kettle, evening cooking), for the
+// power graph on Today
+{
+  const mins = []
+  const d = new Date()
+  d.setHours(0, 0, 0, 0)
+  const y0 = d.getTime() - 86400e3
+  const end = Math.floor(Date.now() / 60e3) * 60e3 - 60e3
+  for (let t = y0; t <= end; t += 60e3) {
+    const m = Math.floor((t - y0) / 60e3) % 1440
+    const h = m / 60
+    const day = t < y0 + 86400e3
+      ? 0
+      : 1
+    let w = 260 + (m % 40 < 15
+      ? 120
+      : 0) // always on, and the fridge
+    if ((m >= 420 && m < 424) || (m >= 1110 && m < 1113 + day)) {
+      w += 2000 // kettle, morning and evening
+    }
+    if (h >= 17.5 && h < 19 + day * 0.25) {
+      w += 1800 + (m % 7 < 3
+        ? 900
+        : 0) // cooking
+    }
+    if (h >= 19 && h < 23) {
+      w += 350 // lights and TV
+    }
+    mins.push([
+      t,
+      Math.round(w + (Math.sin(m) + 1) * 15),
+    ])
+  }
+  fs.mkdirSync(path.join(dir, 'home-energy'), { recursive: true })
+  fs.writeFileSync(path.join(dir, 'home-energy', 'state.json'), JSON.stringify({ format: 'home-energy-1', minutes: mins }))
+}
+// "fresh": a new install, as Homebridge leaves it: no block in config.json, so the plugin isn't running
+const fresh = process.argv[3] === 'fresh'
+if (fresh) {
+  config = []
+}
 const api = fakeApi({ storage: dir, configPath: cfgPath })
 const log = fakeLog()
-plugin(api)
-const platform = new api.Platform(log, config[0], api)
-platform.matterDevices.worker = path.join(HERE, 'fake-matter-worker.js')
-platform.scanAddresses = () => ({
-  networks: ['test'],
-  hosts: scanHosts,
-})
-api.emit('didFinishLaunching')
+if (!fresh) {
+  plugin(api)
+  const platform = new api.Platform(log, config[0], api)
+  platform.matterDevices.worker = path.join(HERE, 'fake-matter-worker.js')
+  platform.scanAddresses = () => ({
+    networks: ['test'],
+    hosts: scanHosts,
+  })
+  api.emit('didFinishLaunching')
+}
 const H = makeHandlers(dir)
 const page = fs.readFileSync(path.join(HERE, '..', 'lib', 'homebridge-ui', 'public', 'index.html'), 'utf8')
 const stub = `<script>
@@ -158,6 +202,14 @@ http
       res.end(JSON.stringify(o))
     }
     // like the Homebridge UI: the page runs in a sandboxed frame without allow-modals or allow-downloads, so confirm(), prompt() and downloads are blocked
+    if (req.url === '/app.js' || req.url === '/style.css') {
+      res.writeHead(200, {
+        'Content-Type': req.url === '/app.js'
+          ? 'text/javascript'
+          : 'text/css',
+      })
+      return res.end(fs.readFileSync(path.join(HERE, '..', 'lib', 'homebridge-ui', 'public', req.url.slice(1))))
+    }
     if (req.url === '/') {
       res.writeHead(200, { 'Content-Type': 'text/html' })
       return res.end(

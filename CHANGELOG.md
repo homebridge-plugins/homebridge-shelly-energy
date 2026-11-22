@@ -18,3 +18,4 @@ All notable changes to `@homebridge-plugins/homebridge-shelly-energy` will be do
 - fix(web): limit wrong pins for the whole page, and ask for 6 or more characters
 - fix: limit the size and number of backup uploads
 - fix(matter): keep the matter controller's keys readable by the homebridge user only
+- fix(web): only open the web page's port once a pin is set

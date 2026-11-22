@@ -114,6 +114,13 @@ afterAll(() => {
   api.emit('shutdown')
 })
 
+it('with no PIN set, the web page\'s port stays closed; setting one opens it', async () => {
+  await assert.rejects(req('GET', '/'), /ECONNREFUSED/)
+  await hb('webSetPin', { pin: '482615' })
+  await wait(300)
+  assert.equal((await req('GET', '/')).status, 200)
+})
+
 it('the page is served to a home-network address, not to other host names', async () => {
   const r = await req('GET', '/')
   assert.equal(r.status, 200)
@@ -139,14 +146,11 @@ it('the page is served to a home-network address, not to other host names', asyn
   )
 })
 
-it('requests need the page\'s own header and origin; no PIN set means no sign-in', async () => {
+it('requests need the page\'s own header and origin; not signed in means nothing but the sign-in', async () => {
   assert.equal((await req('POST', '/api/session', { body: {} })).status, 403)
   assert.equal((await api_('/api/session', {}, null, { Origin: 'http://attacker.example.com' })).status, 403)
   const s = await api_('/api/session', {})
-  assert.deepEqual(s.json, { pinSet: false, signedIn: false })
-  const l = await api_('/api/login', { pin: '1234' })
-  assert.equal(l.status, 403)
-  assert.match(l.json.error, /No PIN/)
+  assert.deepEqual(s.json, { pinSet: true, signedIn: false })
   assert.equal(
     (
       await api_('/api/hb', {

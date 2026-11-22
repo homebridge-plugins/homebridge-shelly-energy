@@ -14,3 +14,4 @@ All notable changes to `@homebridge-plugins/homebridge-shelly-energy` will be do
 - fix(schema): list the name as required the json schema way
 - fix: add the supports-hap and supports-matter keywords
 - fix: stop reading test settings from environment variables
+- fix: refuse addresses with a leading zero, which fetch reads as another address

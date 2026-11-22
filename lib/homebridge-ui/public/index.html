@@ -226,7 +226,7 @@
     const todo = [];
     if (!V.settings.em.host) todo.push(['sec-set', 'Add the Shelly EM\'s address', 'Settings → Whole-house meter']);
     else if (!V.em.ok && V.em.msg !== 'Connecting…') todo.push(['sec-set', `The meter isn't answering: ${V.em.msg}`, 'Settings → Whole-house meter']);
-    if (!V.tiles.matterOn) todo.push(['', 'Turn on Matter for this plugin\'s child bridge (Plugins → ⋮ → Bridge Settings) and restart', '']);
+    if (!V.tiles.matterOn) todo.push(['', 'Turn on Matter for this plugin\'s bridge (the main bridge in Settings, or Plugins → ⋮ → Bridge Settings for a child bridge) and restart', '']);
     if (V.patterns.length) todo.push(['sec-appl', `${plural(V.patterns.length, 'repeating step')} to name`, 'Appliances']);
     const na = notAnswering(); if (na) todo.push(['sec-set', `${plural(na, 'device')} not answering`, 'Settings → Shellys and Matter devices']);
     const nf = foundReadings().filter(d => !d.hidden).length; if (nf) todo.push(['sec-appl', `${plural(nf, 'device reading')} found, not set up yet`, 'Appliances']);
@@ -482,7 +482,7 @@
       <div><label><input type="checkbox" id="tOther"${S.other.on ? ' checked' : ''}> "Other" outlet</label><div class="help">Carries what your appliances don't explain, so the outlets add up to the whole house.</div></div>
       <div><label class="l">Its name</label><input class="form-control" id="tOtherName" value="${esc(S.other.name)}" maxlength="32"></div>
     </div><div class="gap" style="margin-top:.6rem"><button class="btn btn-primary btn-sm" id="saveTiles">Save</button></div>
-    <div class="help" style="margin-top:.6rem">Each appliance's own tiles are set with its Edit button, and Cheap Power Now with the electricity plan. Outlets come over Matter; running tiles and Cheap Power Now over HomeKit, so this plugin's child bridge needs both on.</div>`);
+    <div class="help" style="margin-top:.6rem">Each appliance's own tiles are set with its Edit button, and Cheap Power Now with the electricity plan. Outlets come over Matter; running tiles and Cheap Power Now over HomeKit, so this plugin's bridge needs both on.</div>`);
   }
   function renderData() {
     const B = V.backups || [], imp = V.imported, nice = n => n.replace(/^shelly-home-energy-|\.json$/g, '').replace(/^(\d{4}-\d\d-\d\d)-(\d\d)(\d\d)(\d\d)$/, '$1 $2:$3:$4');

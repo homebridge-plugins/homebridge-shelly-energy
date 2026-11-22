@@ -28,3 +28,4 @@ All notable changes to `@homebridge-plugins/homebridge-shelly-energy` will be do
 - fix: forget a saved reading time that is in the future
 - fix: rename homekit tiles with updateDisplayName
 - fix: remove cached tiles and outlets the plugin no longer has
+- fix: stop asking for a child bridge when matter is on for the main bridge

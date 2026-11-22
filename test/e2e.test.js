@@ -100,6 +100,45 @@ describe('matter outlets', () => {
   })
 })
 
+describe('bridge checks', () => {
+  it('doesn\'t ask for a child bridge when Matter is on for the main bridge', async () => {
+    fs.mkdirSync(storage, { recursive: true })
+    fs.writeFileSync(path.join(storage, 'config.json'), JSON.stringify({
+      bridge: {
+        name: 'Homebridge',
+        matter: { port: 5540 },
+      },
+      platforms: [
+        cfg(),
+      ],
+    }))
+    try {
+      await start()
+      expect(run.log.lines.filter(l => /child bridge|Matter is off/.test(l))).toEqual([])
+    } finally {
+      fs.rmSync(path.join(storage, 'config.json'))
+    }
+  })
+
+  it('says how to turn Matter on when it is off', async () => {
+    fs.writeFileSync(path.join(storage, 'config.json'), JSON.stringify({
+      bridge: { name: 'Homebridge' },
+      platforms: [
+        cfg(),
+      ],
+    }))
+    try {
+      fs.rmSync(path.join(storage, 'home-energy'), { recursive: true, force: true })
+      run = boot(cfg(), {
+        setup: api => withMatter(makeMatter(api), false)(api),
+      })
+      expect(run.log.lines.some(l => /Turn on Matter/i.test(l))).toBe(true)
+    } finally {
+      fs.rmSync(path.join(storage, 'config.json'))
+    }
+  })
+})
+
 describe('tiles and outlets the plugin no longer has', () => {
   it('removes them when it starts, so none are left in Apple Home with frozen values', async () => {
     // a tile and an outlet from an appliance in a state.json that was since lost

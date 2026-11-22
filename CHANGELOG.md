@@ -22,3 +22,4 @@ All notable changes to `@homebridge-plugins/homebridge-shelly-energy` will be do
 - fix(web): end web page sign-ins after 180 days, as their cookie does
 - fix: keep the settings page's socket in a private folder when the storage path is long
 - fix: only run the plugin's own action names
+- fix: keep a gen1 em or 3em clamp chosen on the settings page

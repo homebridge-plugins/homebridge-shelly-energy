@@ -67,3 +67,11 @@ describe('the settings schema', () => {
     expect(existsSync(new URL(`../${schemaFile.customUiPath}/public/index.html`, import.meta.url))).toBe(true)
   })
 })
+
+describe('the package manifest', () => {
+  it('says it publishes both HomeKit (HAP) tiles and Matter outlets', () => {
+    // supports-matter alone would tell the Homebridge UI the plugin is Matter only
+    expect(pkg.keywords).toContain('supports-hap')
+    expect(pkg.keywords).toContain('supports-matter')
+  })
+})

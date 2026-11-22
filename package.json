@@ -18,6 +18,8 @@
   "keywords": [
     "homebridge",
     "homebridge-plugin",
+    "supports-hap",
+    "supports-matter",
     "homebridge-shelly-energy",
     "homekit",
     "shelly",

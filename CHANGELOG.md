@@ -19,3 +19,4 @@ All notable changes to `@homebridge-plugins/homebridge-shelly-energy` will be do
 - fix: limit the size and number of backup uploads
 - fix(matter): keep the matter controller's keys readable by the homebridge user only
 - fix(web): only open the web page's port once a pin is set
+- fix(web): end web page sign-ins after 180 days, as their cookie does

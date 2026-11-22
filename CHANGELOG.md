@@ -26,3 +26,4 @@ All notable changes to `@homebridge-plugins/homebridge-shelly-energy` will be do
 - fix: end a learned appliance's run that goes on far longer than its usual ones
 - fix: count past days by calendar day, so the spring clock change skips none
 - fix: forget a saved reading time that is in the future
+- fix: rename homekit tiles with updateDisplayName

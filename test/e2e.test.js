@@ -114,6 +114,20 @@ describe('homekit tiles', () => {
     run.platform.hap.pushAll(true)
     expect(run.warnings).toEqual([])
   })
+  it('renames a tile in Homebridge and in HAP when its appliance is renamed', async () => {
+    await start()
+    await run.platform.actions().importFile({
+      data: structuredClone(backup),
+      name: 'backup.json',
+    })
+    await vi.waitFor(() => expect(run.registered.length).toBeGreaterThan(0), { timeout: 3000 })
+    const kettle = backup.sigs.find(s => s.name === 'Kettle')
+    const tile = run.registered.find(a => a.UUID === hapUuid.generate(`shelly-appliances-faucet:${kettle.id}`))
+    run.platform.actions().editSig({ id: kettle.id, name: 'Big Kettle' })
+    expect(tile.displayName).toBe('Big Kettle')
+    // HAP's own copy of the name, which a plain assignment leaves behind
+    expect(tile._associatedHAPAccessory.displayName).toBe('Big Kettle')
+  })
 })
 
 describe('shutdown', () => {

@@ -139,6 +139,10 @@ class PlatformAccessory {
     ]
   }
 
+  updateDisplayName(name) {
+    this.displayName = name
+  }
+
   getService(T) {
     return this.services.find(s => s instanceof T)
   }

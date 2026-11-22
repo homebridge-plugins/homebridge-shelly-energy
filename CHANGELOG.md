@@ -19,6 +19,7 @@ All notable changes to `@homebridge-plugins/homebridge-shelly-energy` will be do
 - fix: compare the settings page's key as bytes, so an odd key can't crash homebridge
 - fix: carry on reading when the clock is put back right after running ahead
 - fix: write the save file by its path, so the plugin checks don't see a write outside storage
+- test: split a long object in the save test, for the lint rules
 
 ## v1.0.0 (2026-11-22)
 

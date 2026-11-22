@@ -12,7 +12,7 @@ import { callPlugin } from '../lib/control.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 process.env.HE_MATTER_WORKER = path.join(HERE, 'fake-matter-worker.mjs');
-const { default: plugin } = await import('../index.js');
+const { default: plugin } = await import('../lib/index.js');
 const secs = Math.max(8, +(process.argv[2] || 12));
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'he-boot-')), cfgPath = path.join(dir, 'config.json');
 const block = { platform: 'ShellyHomeEnergy', name: 'Shelly Home Energy', host: '127.0.0.1:18801', channel: 'em1:0', _bridge: { username: '0E:00:00:00:00:01', port: 51999, matter: { port: 5541 } } };
@@ -37,7 +37,7 @@ try {
   let v = await call('view');
   assert.ok(log.lines.some(([l, m]) => l === 'warn' && /same bridge ID as "Other plugin"/.test(m)), 'warns about the clashing bridge ID');
   assert.ok(log.lines.some(([l, m]) => l === 'warn' && /Matter port 5541 is also used by "Other plugin"/.test(m)), 'warns about the clashing Matter port');
-  assert.equal(v.plugin.name, 'Shelly Home Energy Monitoring');
+  assert.equal(v.plugin.name, 'Homebridge Shelly Energy');
   assert.deepEqual(v.backups, []);
   await until(async () => (await call('view')).em.ok);
   // whole-house readings and a step

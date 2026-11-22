@@ -11,7 +11,7 @@ import { fakeApi, fakeLog, PlatformAccessory, Service, uuid } from './fake-homeb
 
 let n = 0; const ok = async (name, fn) => { await fn(); n++; console.log('ok', name); };
 const mkE = () => new Engine({ file: path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'he-t-')), 'state.json'), log: fakeLog() });
-const P = ['homebridge-shelly-home-energy-monitoring', 'ShellyHomeEnergy'];
+const P = ['@homebridge-plugins/homebridge-shelly-energy', 'ShellyHomeEnergy'];
 
 await ok('Matter outlets keep their fixed identities; Other carries the rest; values pushed; renames', async () => {
   const e = mkE(), api = fakeApi(), log = fakeLog();
@@ -20,7 +20,7 @@ await ok('Matter outlets keep their fixed identities; Other carries the rest; va
   const mt = new MatterTiles({ api, log, engine: e, pluginName: P[0], platformName: P[1] });
   await mt.sync();
   assert.deepEqual(api.rec.mReg.map(a => a.UUID).sort(), [uuid.generate('shelly-appliances:abc123'), uuid.generate('shelly-appliances:__other__')].sort());
-  const k = api.rec.mReg.find(a => a.serialNumber === 'SA-abc123'); assert.equal(k.manufacturer, 'Shelly Home Energy Monitoring'); assert.ok(k.clusters.electricalPowerMeasurement);
+  const k = api.rec.mReg.find(a => a.serialNumber === 'SA-abc123'); assert.equal(k.manufacturer, 'Homebridge Shelly Energy'); assert.ok(k.clusters.electricalPowerMeasurement);
   e.running.abc123 = Date.now(); e.processSample(Date.now() - 1000, 2300); e.processSample(Date.now(), 2300);
   await mt.pushAll();
   const st = api.rec.mState.filter(x => x.u === uuid.generate('shelly-appliances:abc123'));

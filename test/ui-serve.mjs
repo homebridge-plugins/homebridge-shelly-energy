@@ -8,11 +8,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fakeApi, fakeLog } from './fake-homebridge.mjs';
 import { startFakeEm, startFakeGen1, startFakeGen2, startFakeShelly } from './fake-shelly.mjs';
-import { makeHandlers } from '../homebridge-ui/handlers.js';
+import { makeHandlers } from '../lib/homebridge-ui/handlers.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url)), port = +(process.argv[2] || 8599);
 process.env.HE_MATTER_WORKER = path.join(HERE, 'fake-matter-worker.mjs');
-const { default: plugin } = await import('../index.js');
+const { default: plugin } = await import('../lib/index.js');
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'he-ui-')), cfgPath = path.join(dir, 'config.json');
 // files the browser test chooses with "Import a backup file…" (it knows this folder from the port)
 const files = path.join(os.tmpdir(), `he-ui-files-${port}`); fs.rmSync(files, { recursive: true, force: true }); fs.mkdirSync(files);
@@ -44,7 +44,7 @@ plugin(api);
 new api.Platform(log, config[0], api);
 api.emit('didFinishLaunching');
 const H = makeHandlers(dir);
-const page = fs.readFileSync(path.join(HERE, '..', 'homebridge-ui', 'public', 'index.html'), 'utf8');
+const page = fs.readFileSync(path.join(HERE, '..', 'lib', 'homebridge-ui', 'public', 'index.html'), 'utf8');
 const stub = `<script>
 window.homebridge = {
   async request(route, payload) { const r = await fetch('/hb', { method: 'POST', body: JSON.stringify({ route, payload }) }); const j = await r.json(); if (j.error) throw new Error(j.error); return j.result; },

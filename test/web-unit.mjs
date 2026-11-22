@@ -12,7 +12,7 @@ import { callPlugin } from '../lib/control.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 process.env.HE_MATTER_WORKER = path.join(HERE, 'fake-matter-worker.mjs');
-const { default: plugin } = await import('../index.js');
+const { default: plugin } = await import('../lib/index.js');
 let n = 0; const ok = async (name, fn) => { await fn(); n++; console.log('ok', name); };
 const PORT = 18591, wait = ms => new Promise(r => setTimeout(r, ms));
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'he-web-')), cfg = path.join(dir, 'config.json');

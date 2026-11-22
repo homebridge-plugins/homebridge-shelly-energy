@@ -39,7 +39,7 @@ export function fakeApi({ storage, configPath, matter = true, hap = true } = {})
     version: 2.7, serverVersion: '2.5.0', rec,
     user: { storagePath: () => storage, configPath: () => configPath },
     hap: hap ? { uuid, Service, Characteristic } : undefined, platformAccessory: PlatformAccessory,
-    registerPlatform(name, Cls) { this.platformName = name; this.Platform = Cls; },
+    registerPlatform(...a) { const Cls = a.pop(); this.platformName = a.pop(); this.Platform = Cls; },
     registerPlatformAccessories(p, n, list) { rec.hapReg.push(...list); },
     unregisterPlatformAccessories(p, n, list) { rec.hapUnreg.push(...list); },
     updatePlatformAccessories(list) { rec.hapUpd.push(...list); },

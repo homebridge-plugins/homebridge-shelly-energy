@@ -1,21 +1,55 @@
 {
-  "name": "homebridge-shelly-home-energy-monitoring",
-  "displayName": "Shelly Home Energy Monitoring",
-  "version": "1.1.1",
-  "description": "Learns your appliances from a Shelly EM whole-house meter, reads Shellys and Matter devices on your home network for exact figures, and shows each appliance in Apple Home as a Matter outlet with live watts and energy. Everything stays on your home network.",
+  "name": "@homebridge-plugins/homebridge-shelly-energy",
+  "alias": "ShellyHomeEnergy",
+  "displayName": "Homebridge Shelly Energy",
   "type": "module",
-  "main": "index.js",
+  "version": "1.0.0",
+  "description": "Homebridge plugin that learns your appliances from a Shelly whole-house energy meter and shows each one in Apple Home with live watts and energy over Matter. Local only.",
+  "author": "homebridge-plugins",
   "license": "MIT",
-  "keywords": ["homebridge-plugin", "homebridge", "shelly", "shelly-em", "matter", "energy", "power", "appliances", "nilm"],
-  "engines": { "homebridge": "^2.4.0", "node": "^22.18.0 || ^24.0.0 || ^26.0.0" },
-  "files": ["README.md", "config.schema.json", "index.js", "lib", "homebridge-ui"],
+  "homepage": "https://github.com/homebridge-plugins/homebridge-shelly-energy",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/homebridge-plugins/homebridge-shelly-energy.git"
+  },
+  "bugs": {
+    "url": "https://github.com/homebridge-plugins/homebridge-shelly-energy/issues"
+  },
+  "keywords": [
+    "homebridge",
+    "homebridge-plugin",
+    "homebridge-shelly-energy",
+    "homekit",
+    "shelly",
+    "shelly-em",
+    "matter",
+    "energy",
+    "power",
+    "appliances",
+    "nilm"
+  ],
+  "main": "lib/index.js",
+  "engines": {
+    "homebridge": "^2.4.0",
+    "node": "^22.18.0 || ^24.0.0 || ^26.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
-    "test": "node test/run-all.mjs"
+    "lint": "eslint . --max-warnings=0",
+    "lint:fix": "npm run lint -- --fix",
+    "test": "node test/run-all.mjs",
+    "changelog:sync": "node .github/scripts/sync-changelog.mjs"
   },
   "dependencies": {
-    "@homebridge/plugin-ui-utils": "^2.0.0",
+    "@homebridge/plugin-ui-utils": "^2.3.0",
     "@matter/main": "^0.17.9",
     "@matter/nodejs": "^0.17.9",
     "@project-chip/matter.js": "^0.17.9"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^10.0.0",
+    "homebridge": "^2.5.0"
   }
 }

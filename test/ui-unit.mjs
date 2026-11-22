@@ -1,7 +1,7 @@
-// node test/ui-unit.mjs - the settings page's server side (homebridge-ui/handlers.js): only known actions pass, large files go
+// node test/ui-unit.mjs - the settings page's server side (lib/homebridge-ui/handlers.js): only known actions pass, large files go
 // in pieces both ways, and a plugin that isn't running is reported plainly.
 import assert from 'node:assert/strict';
-import { makeHandlers } from '../homebridge-ui/handlers.js';
+import { makeHandlers } from '../lib/homebridge-ui/handlers.js';
 
 let n = 0; const ok = async (name, fn) => { await fn(); n++; console.log('ok', name); };
 const calls = [];

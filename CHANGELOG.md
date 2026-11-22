@@ -1,0 +1,10 @@
+# Change Log
+
+All notable changes to `@homebridge-plugins/homebridge-shelly-energy` will be documented in this file.
+
+## v1.0.0 (Pending Release)
+
+### Changed
+
+- chore: import the shelly home energy plugin source
+- refactor: move the code into lib, and use the org package name, workflows and issue forms

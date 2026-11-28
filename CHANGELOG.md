@@ -2,6 +2,12 @@
 
 All notable changes to `@homebridge-plugins/homebridge-shelly-energy` will be documented in this file.
 
+## v1.1.1 (Pending Release)
+
+### Changed
+
+- chore(deps): dependency updates
+
 ## v1.1.0 (2026-11-22)
 
 ### Changed
